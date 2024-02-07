@@ -454,7 +454,15 @@ void FinalScene::UpdateGBuffer() {
   UpdateModels(geom_pipe_);
 }
 
-void FinalScene::DeleteGBuffer() { geom_pipe_.Delete(); }
+void FinalScene::DeleteGBuffer() {
+  geom_pipe_.Delete();
+  glDeleteRenderbuffers(1, &depth_rbo_);
+  g_buffer_ = 0;
+  pos_map_ = 0;
+  normal_map_ = 0;
+  albedo_map_ = 0;
+  depth_rbo_ = 0;
+}
 
 void FinalScene::BeginSSAO() {
   // generate sample kernel
@@ -590,6 +598,13 @@ void FinalScene::UpdateSSAO() {
 void FinalScene::DeleteSSAO() {
   ssao_pipe_.Delete();
   ssao_blur_pipe_.Delete();
+  noise_texture_ = 0;
+  glDeleteFramebuffers(1, &ssao_fbo_);
+  glDeleteFramebuffers(1, &ssao_blur_fbo_);
+  ssao_fbo_ = 0;
+  ssao_blur_fbo_ = 0;
+  ssao_tex_ = 0;
+  ssao_blur_tex_ = 0;
 }
 
 void FinalScene::BeginShadowMap() {
@@ -655,7 +670,12 @@ void FinalScene::BeginShadowMap() {
   glViewport(0, 0, Metrics::width_, Metrics::height_);
 }
 
-void FinalScene::DeleteShadowMap() { shadow_map_pipe_.Delete(); }
+void FinalScene::DeleteShadowMap() {
+  shadow_map_pipe_.Delete();
+  glDeleteFramebuffers(1, &shadow_fbo_);
+  shadow_fbo_ = 0;
+  shadow_tex_ = 0;
+}
 
 void FinalScene::BeginPBR() {
   pbr_pipe_.LoadShader("data/shaders/Final/pb_bloom.vert",
