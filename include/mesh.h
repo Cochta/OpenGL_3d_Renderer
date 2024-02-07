@@ -8,24 +8,13 @@
 #include <string_view>
 #include <vector>
 
-enum class MeshType {
-  Triangle,
-  Quad,
-  Quad1,
-  Cube,
-  Cube05,
-  Cube30,
-  Sphere,
-  Model
-};
-
 class Mesh {
  public:
-  Mesh() = delete;
-  Mesh(MeshType type);
-
-  ~Mesh() { clear(); }
-
+  Mesh() = default;
+  void SetTriangle();
+  void SetQuad(float scale = 1);
+  void SetCube(float scale = 1, glm::vec2 factor = glm::vec2(1, 1));
+  void SetSphere();
   std::vector<float> vertices_;
   std::vector<float> tex_coord_;
   std::vector<float> normals_;
@@ -34,49 +23,35 @@ class Mesh {
 
   std::vector<GLuint> indices_;
 
-  std::vector<Texture> textures_;
-
   GLuint vao_;
   std::vector<GLuint> vbo_;
   GLuint ebo_ = 0;
-  void BindVBO(int index, std::vector<float> elements, int size);
 
- private:
-  void SetTriangle();
-  void SetQuad(float scale = 1);
-  void SetCube(float scale = 1);
-  void SetSphere();
-
- public:
   void Draw();
   void clear();
+  void BindVBO(int index, std::vector<float> elements, int size);
 };
 class Model {
  public:
-  GLuint albedo_ = 0;
-  GLuint normal_ = 0;
-  GLuint metallic_ = 0;
-  GLuint ao_ = 0;
-  GLuint roughness_ = 0;
+  GLuint albedo = 0;
+  GLuint normal = 0;
+  GLuint metallic = 0;
+  GLuint ao = 0;
+  GLuint roughness = 0;
 
+ private:
   TextureManager tm_;
-
-  // Mesh mesh_ = Mesh(MeshType::Model);
 
   std::vector<Mesh> meshes_;
   std::string dir_path_;
 
-  void Load(std::string_view path, bool gamma = false, bool flip = false,
-            bool pbr = false);
-
-  void ProcessNode(aiNode* node, const aiScene* scene, bool gamma = false,
-                   bool flip = false, bool pbr = false);
-  Mesh ProcessMesh(aiMesh* mesh, const aiScene* scene, bool gamma = false,
-                   bool flip = false, bool pbr = false);
-  std::vector<Texture> LoadAllTextures(aiMaterial* mat, aiTextureType type,
-                                       std::string type_name,
-                                       bool flip = false);
+ public:
+  void Load(std::string_view path, bool flip = false);
 
   void Draw();
   void Clear();
+
+ private:
+  void ProcessNode(aiNode* node, const aiScene* scene);
+  Mesh ProcessMesh(aiMesh* mesh, const aiScene* scene);
 };

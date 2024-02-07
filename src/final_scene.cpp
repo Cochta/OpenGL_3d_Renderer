@@ -3,6 +3,10 @@
 void FinalScene::Begin() {
   glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
+  cube_.SetCube();
+  cube_ground_.SetCube(30, {1, 0.1});
+  quad_screen_.SetQuad(2);
+
   BeginBloom();
   BeginSkyBox();
   CreateIrradianceMap();
@@ -15,10 +19,6 @@ void FinalScene::Begin() {
   BeginGBuffer();
   BeginSSAO();
   BeginPBR();
-  glEnable(GL_DEPTH_TEST);
-  glDepthFunc(GL_LESS);
-  glEnable(GL_CULL_FACE);
-  glCullFace(GL_FRONT);
   BeginShadowMap();
 
   glViewport(0, 0, Metrics::width_, Metrics::height_);
@@ -315,7 +315,7 @@ void FinalScene::CreateBRDF() {
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  quad_.Draw();
+  quad_screen_.Draw();
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -341,13 +341,31 @@ void FinalScene::UpdateLamp() {
 void FinalScene::DeleteLamp() { light_cube_.Delete(); }
 
 void FinalScene::BeginGround() {
-  ground_albedo_ = tm_.LoadTexture("data/textures/pbr/alley_brick/albedo.png");
-  ground_normal_ = tm_.LoadTexture("data/textures/pbr/alley_brick/normal.png");
-  ground_ao_ = tm_.LoadTexture("data/textures/pbr/alley_brick/ao.png");
+  // ground_albedo_ =
+  // tm_.LoadTexture("data/textures/pbr/alley_brick/albedo.png"); ground_normal_
+  // = tm_.LoadTexture("data/textures/pbr/alley_brick/normal.png"); ground_ao_ =
+  // tm_.LoadTexture("data/textures/pbr/alley_brick/ao.png"); ground_metallic_ =
+  //     tm_.LoadTexture("data/textures/pbr/alley_brick/metallic.png");
+  // ground_roughness_ =
+  //     tm_.LoadTexture("data/textures/pbr/alley_brick/roughness.png");
+
+  // ground_albedo_ =
+  // tm_.LoadTexture("data/textures/pbr/modern_brick/albedo.png");
+  // ground_normal_ =
+  // tm_.LoadTexture("data/textures/pbr/modern_brick/normal.png"); ground_ao_ =
+  // tm_.LoadTexture("data/textures/pbr/modern_brick/ao.png"); ground_metallic_
+  // =
+  //     tm_.LoadTexture("data/textures/pbr/modern_brick/metallic.png");
+  // ground_roughness_ =
+  //     tm_.LoadTexture("data/textures/pbr/modern_brick/roughness.png");
+
+  ground_albedo_ = tm_.LoadTexture("data/textures/pbr/stonework/albedo.png");
+  ground_normal_ = tm_.LoadTexture("data/textures/pbr/stonework/normal.png");
+  ground_ao_ = tm_.LoadTexture("data/textures/pbr/stonework/ao.png");
   ground_metallic_ =
-      tm_.LoadTexture("data/textures/pbr/alley_brick/metallic.png");
+      tm_.LoadTexture("data/textures/pbr/stonework/metallic.png");
   ground_roughness_ =
-      tm_.LoadTexture("data/textures/pbr/alley_brick/roughness.png");
+      tm_.LoadTexture("data/textures/pbr/stonework/roughness.png");
 }
 
 void FinalScene::UpdateGround(Pipeline& pipeline) {
@@ -369,10 +387,16 @@ void FinalScene::UpdateGround(Pipeline& pipeline) {
   pipeline.SetMat4("normalMatrix",
                    glm::transpose(glm::inverse(glm::mat4(view * model))));
 
-  cube30_.Draw();
+  cube_ground_.Draw();
 }
 
-void FinalScene::DeleteGround() { glDisable(GL_CULL_FACE); }
+void FinalScene::DeleteGround() {
+  ground_albedo_ = 0;
+  ground_normal_ = 0;
+  ground_metallic_ = 0;
+  ground_ao_ = 0;
+  ground_roughness_ = 0;
+}
 
 void FinalScene::BeginGBuffer() {
   geom_pipe_.LoadShader("data/shaders/Final/g_buffer.vert",
@@ -580,7 +604,7 @@ void FinalScene::UpdateSSAO() {
   glActiveTexture(GL_TEXTURE2);
   glBindTexture(GL_TEXTURE_2D, noise_texture_);
 
-  quad_.Draw();
+  quad_screen_.Draw();
 
   // SSAO blur.
   // ----------
@@ -592,7 +616,7 @@ void FinalScene::UpdateSSAO() {
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, ssao_tex_);
 
-  quad_.Draw();
+  quad_screen_.Draw();
 }
 
 void FinalScene::DeleteSSAO() {
@@ -608,6 +632,10 @@ void FinalScene::DeleteSSAO() {
 }
 
 void FinalScene::BeginShadowMap() {
+  glEnable(GL_DEPTH_TEST);
+  glDepthFunc(GL_LESS);
+  glEnable(GL_CULL_FACE);
+  glCullFace(GL_FRONT);
   shadow_map_pipe_.LoadShader("data/shaders/Final/depth.vert",
                               "data/shaders/Final/depth.frag");
   shadow_map_pipe_.LoadProgram();
@@ -732,7 +760,7 @@ void FinalScene::UpdatePBR() {
   glActiveTexture(GL_TEXTURE7);
   glBindTexture(GL_TEXTURE_CUBE_MAP, shadow_tex_);
 
-  quad_.Draw();
+  quad_screen_.Draw();
 }
 
 void FinalScene::DeletePBR() {
@@ -743,54 +771,51 @@ void FinalScene::DeletePBR() {
 }
 
 void FinalScene::BeginModels() {
-  lamp_model_.Load("data/models/final/lamp/msh_lampadaire_01.obj", true, false,
-                   true);
+  lamp_model_.Load("data/models/final/lamp/msh_lampadaire_01.obj");
 
-  lamp_model_.albedo_ =
+  lamp_model_.albedo =
       tm_.LoadTexture("data/models/final/lamp/lampBaseColor.png", true, true);
-  lamp_model_.normal_ =
-      tm_.LoadTexture("data/models/final/lamp/lampNormal.png");
-  lamp_model_.ao_ = tm_.LoadTexture("data/models/final/lamp/lampAO.png");
-  lamp_model_.metallic_ =
+  lamp_model_.normal = tm_.LoadTexture("data/models/final/lamp/lampNormal.png");
+  lamp_model_.ao = tm_.LoadTexture("data/models/final/lamp/lampAO.png");
+  lamp_model_.metallic =
       tm_.LoadTexture("data/models/final/lamp/lampMetallic.png");
-  lamp_model_.roughness_ =
+  lamp_model_.roughness =
       tm_.LoadTexture("data/models/final/lamp/lampRoughness.png");
 
-  backpack_model_.Load("data/models/final/backpack/backpack.obj", true, false,
-                       true);
-  backpack_model_.albedo_ =
+  backpack_model_.Load("data/models/final/backpack/backpack.obj");
+
+  backpack_model_.albedo =
       tm_.LoadTexture("data/models/final/backpack/diffuse.jpg", false, true);
-  backpack_model_.normal_ =
+  backpack_model_.normal =
       tm_.LoadTexture("data/models/final/backpack/normal.png", false);
-  backpack_model_.ao_ =
+  backpack_model_.ao =
       tm_.LoadTexture("data/models/final/backpack/ao.jpg", false);
-  backpack_model_.metallic_ =
+  backpack_model_.metallic =
       tm_.LoadTexture("data/models/final/backpack/specular.jpg", false);
-  backpack_model_.roughness_ =
+  backpack_model_.roughness =
       tm_.LoadTexture("data/models/final/backpack/roughness.jpg", false);
 
-  man_model_.Load("data/models/final/man/man1.obj", true, false, true);
+  man_model_.Load("data/models/final/man/man1.obj");
 
-  man_model_.albedo_ =
+  man_model_.albedo =
       tm_.LoadTexture("data/models/final/man/albedo.jpg", true, true);
-  man_model_.normal_ = tm_.LoadTexture("data/models/final/man/normal.png");
-  man_model_.ao_ = tm_.LoadTexture("data/models/final/man/ao.png");
-  man_model_.metallic_ = tm_.LoadTexture("data/models/final/man/metallic.png");
-  man_model_.roughness_ =
-      tm_.LoadTexture("data/models/final/man/roughness.jpg");
+  man_model_.normal = tm_.LoadTexture("data/models/final/man/normal.png");
+  man_model_.ao = tm_.LoadTexture("data/models/final/man/ao.png");
+  man_model_.metallic = tm_.LoadTexture("data/models/final/man/metallic.png");
+  man_model_.roughness = tm_.LoadTexture("data/models/final/man/roughness.jpg");
 }
 
 void FinalScene::UpdateModels(Pipeline& pipeline) {
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, lamp_model_.albedo_);
+  glBindTexture(GL_TEXTURE_2D, lamp_model_.albedo);
   glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, lamp_model_.normal_);
+  glBindTexture(GL_TEXTURE_2D, lamp_model_.normal);
   glActiveTexture(GL_TEXTURE2);
-  glBindTexture(GL_TEXTURE_2D, lamp_model_.metallic_);
+  glBindTexture(GL_TEXTURE_2D, lamp_model_.metallic);
   glActiveTexture(GL_TEXTURE3);
-  glBindTexture(GL_TEXTURE_2D, lamp_model_.roughness_);
+  glBindTexture(GL_TEXTURE_2D, lamp_model_.roughness);
   glActiveTexture(GL_TEXTURE4);
-  glBindTexture(GL_TEXTURE_2D, lamp_model_.ao_);
+  glBindTexture(GL_TEXTURE_2D, lamp_model_.ao);
 
   model = glm::mat4(1.0f);
   model = glm::translate(model, glm::vec3(0, 0, -10));
@@ -805,15 +830,15 @@ void FinalScene::UpdateModels(Pipeline& pipeline) {
   lamp_model_.Draw();
 
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, backpack_model_.albedo_);
+  glBindTexture(GL_TEXTURE_2D, backpack_model_.albedo);
   glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, backpack_model_.normal_);
+  glBindTexture(GL_TEXTURE_2D, backpack_model_.normal);
   glActiveTexture(GL_TEXTURE2);
-  glBindTexture(GL_TEXTURE_2D, backpack_model_.metallic_);
+  glBindTexture(GL_TEXTURE_2D, backpack_model_.metallic);
   glActiveTexture(GL_TEXTURE3);
-  glBindTexture(GL_TEXTURE_2D, backpack_model_.roughness_);
+  glBindTexture(GL_TEXTURE_2D, backpack_model_.roughness);
   glActiveTexture(GL_TEXTURE4);
-  glBindTexture(GL_TEXTURE_2D, backpack_model_.ao_);
+  glBindTexture(GL_TEXTURE_2D, backpack_model_.ao);
 
   model = glm::mat4(1.0f);
   model = glm::translate(model, glm::vec3(0, 2.2, 0));
@@ -826,15 +851,15 @@ void FinalScene::UpdateModels(Pipeline& pipeline) {
   backpack_model_.Draw();
 
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, man_model_.albedo_);
+  glBindTexture(GL_TEXTURE_2D, man_model_.albedo);
   glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, man_model_.normal_);
+  glBindTexture(GL_TEXTURE_2D, man_model_.normal);
   glActiveTexture(GL_TEXTURE2);
-  glBindTexture(GL_TEXTURE_2D, man_model_.metallic_);
+  glBindTexture(GL_TEXTURE_2D, man_model_.metallic);
   glActiveTexture(GL_TEXTURE3);
-  glBindTexture(GL_TEXTURE_2D, man_model_.roughness_);
+  glBindTexture(GL_TEXTURE_2D, man_model_.roughness);
   glActiveTexture(GL_TEXTURE4);
-  glBindTexture(GL_TEXTURE_2D, man_model_.ao_);
+  glBindTexture(GL_TEXTURE_2D, man_model_.ao);
 
   model = glm::mat4(1.0f);
   model = glm::translate(model, glm::vec3(3, 0.5, -2));
@@ -1005,7 +1030,7 @@ void FinalScene::UpdateBloom() {
                            mip.texture, 0);
 
     // Render screen-filled quad of resolution of current mip
-    quad_.Draw();
+    quad_screen_.Draw();
 
     // Set current mip resolution as srcResolution for next iteration
     down_sample_pipe_.SetVec2("srcResolution", mip.size);
@@ -1035,7 +1060,7 @@ void FinalScene::UpdateBloom() {
                            nextMip.texture, 0);
 
     // Render screen-filled quad of resolution of current mip
-    quad_.Draw();
+    quad_screen_.Draw();
   }
 
   // Disable additive blending
@@ -1054,7 +1079,7 @@ void FinalScene::UpdateBloom() {
   glBindTexture(GL_TEXTURE_2D, bloom_mips_[0].texture);
   hdr_pipe_.SetFloat("bloomStrength", 0.04f);
 
-  quad_.Draw();
+  quad_screen_.Draw();
 }
 
 void FinalScene::DeleteBloom() {

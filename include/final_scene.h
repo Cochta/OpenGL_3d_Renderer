@@ -16,11 +16,9 @@ class FinalScene final : public Scene {
  private:
   TextureManager tm_;
 
-  std::vector<GLuint> vaos_;
-
-  Mesh cube_ = Mesh(MeshType::Cube);
-  Mesh cube30_ = Mesh(MeshType::Cube30);
-  Mesh quad_ = Mesh(MeshType::Quad1);
+  Mesh cube_;
+  Mesh cube_ground_;
+  Mesh quad_screen_;
 
   Pipeline light_cube_;
 
@@ -38,32 +36,27 @@ class FinalScene final : public Scene {
   Pipeline up_sample_pipe_;
   Pipeline hdr_pipe_;
 
-  GLuint texture_ = 0;
-
   GLuint ground_albedo_ = 0;
   GLuint ground_normal_ = 0;
   GLuint ground_metallic_ = 0;
   GLuint ground_ao_ = 0;
   GLuint ground_roughness_ = 0;
 
-  GLuint captureFBO;
-  GLuint captureRBO;
+  GLuint captureFBO = 0;
 
-  GLuint hdr_cubemap_;
-  GLuint env_cubemap_;
-  GLuint irradianceMap;
-  GLuint brdfLUTTexture;
-  GLuint prefilterMap;
+  GLuint captureRBO = 0;
 
-  GLuint lamp_diffuse_ = 0;
-  GLuint lamp_specular_ = 0;
-  GLuint lamp_normal_ = 0;
+  GLuint hdr_cubemap_ = 0;
+  GLuint env_cubemap_ = 0;
+  GLuint irradianceMap = 0;
+  GLuint brdfLUTTexture = 0;
+  GLuint prefilterMap = 0;
 
   Model lamp_model_;
   Model backpack_model_;
   Model man_model_;
 
-  glm::mat4 captureProjection;
+  glm::mat4 captureProjection = glm::mat4(1.0f);
   std::array<glm::mat4, 6> captureViews{};
 
   glm::mat4 view = glm::mat4(1.0f);
@@ -71,7 +64,7 @@ class FinalScene final : public Scene {
   glm::mat4 model = glm::mat4(1.0f);
 
   glm::vec3 lamp_pos_ = glm::vec3(0.077, 5.3, -10);
-  glm::vec3 light_color_ = glm::vec3(30);
+  glm::vec3 light_color_ = glm::vec3(10);
 
   GLuint bloom_fbo_;
   GLuint hdr_fbo_;
@@ -108,9 +101,9 @@ class FinalScene final : public Scene {
 
   glm::mat4 lightSpaceMatrix;
 
-  static constexpr int shadow_tex_res_ = 1024;
+  static constexpr int shadow_tex_res_ = 4096;
 
-  static constexpr float kLightNearPlane = 3.3f;
+  static constexpr float kLightNearPlane = 4.5f;
   static constexpr float kLightFarPlane = 100.f;
 
   static constexpr std::array<glm::vec3, 6> light_dirs = {
@@ -143,10 +136,6 @@ class FinalScene final : public Scene {
   void UpdateLamp();
   void DeleteLamp();
 
-  void BeginGround();
-  void UpdateGround(Pipeline &pipeline);
-  void DeleteGround();
-
   void BeginGBuffer();
   void UpdateGBuffer();
   void DeleteGBuffer();
@@ -161,6 +150,10 @@ class FinalScene final : public Scene {
   void BeginPBR();
   void UpdatePBR();
   void DeletePBR();
+
+  void BeginGround();
+  void UpdateGround(Pipeline &pipeline);
+  void DeleteGround();
 
   void BeginModels();
   void UpdateModels(Pipeline &pipeline);

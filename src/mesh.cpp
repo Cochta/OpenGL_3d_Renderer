@@ -1,34 +1,5 @@
 #include "mesh.h"
 
-Mesh::Mesh(MeshType type) {
-  switch (type) {
-    case MeshType::Triangle:
-      SetTriangle();
-      break;
-    case MeshType::Quad:
-      SetQuad();
-      break;
-    case MeshType::Quad1:
-      SetQuad(2);
-      break;
-    case MeshType::Cube:
-      SetCube();
-      break;
-    case MeshType::Cube05:
-      SetCube(0.5);
-      break;
-    case MeshType::Cube30:
-      SetCube(30);
-      break;
-    case MeshType::Sphere:
-      SetSphere();
-      break;
-    case MeshType::Model:
-      break;
-    default:
-      break;
-  }
-}
 void Mesh::BindVBO(int index, std::vector<float> elements, int size) {
   glBindBuffer(GL_ARRAY_BUFFER, vbo_[index]);
   glBufferData(GL_ARRAY_BUFFER, elements.size() * sizeof(float),
@@ -58,9 +29,8 @@ void Mesh::SetQuad(float scale) {
   glGenVertexArrays(1, &vao_);  // create
   glBindVertexArray(vao_);
 
-  for (int i = 0; i < 3; ++i) {
-    vbo_.emplace_back();
-  }
+  vbo_.resize(3);
+
   glGenBuffers(3, &vbo_[0]);
   BindVBO(0, vertices_, 3);
   BindVBO(1, tex_coord_, 2);
@@ -72,25 +42,24 @@ void Mesh::SetQuad(float scale) {
                indices_.data(), GL_STATIC_DRAW);
 }
 
-void Mesh::SetCube(float scale) {
-  float size = 1.f * scale;
-  vertices_ = {size,  size,  size,  -size, size,  size,  // front
-               -size, -size, size,  size,  -size, size,
+void Mesh::SetCube(float scale, glm::vec2 factor) {
+  vertices_ = {scale,  scale,  scale,  -scale, scale,  scale,  // front
+               -scale, -scale, scale,  scale,  -scale, scale,
 
-               size,  size,  -size, -size, size,  -size,  // up
-               -size, size,  size,  size,  size,  size,
+               scale,  scale,  -scale, -scale, scale,  -scale,  // up
+               -scale, scale,  scale,  scale,  scale,  scale,
 
-               size,  size,  -size, size,  -size, -size,  // back
-               -size, -size, -size, -size, size,  -size,
+               scale,  scale,  -scale, scale,  -scale, -scale,  // back
+               -scale, -scale, -scale, -scale, scale,  -scale,
 
-               size,  -size, -size, size,  -size, size,  // down
-               -size, -size, size,  -size, -size, -size,
+               scale,  -scale, -scale, scale,  -scale, scale,  // down
+               -scale, -scale, scale,  -scale, -scale, -scale,
 
-               size,  size,  -size, size,  size,  size,  // right
-               size,  -size, size,  size,  -size, -size,
+               scale,  scale,  -scale, scale,  scale,  scale,  // right
+               scale,  -scale, scale,  scale,  -scale, -scale,
 
-               -size, size,  -size, -size, -size, -size,  // left
-               -size, size,  size,  -size, -size, size};
+               -scale, scale,  -scale, -scale, -scale, -scale,  // left
+               -scale, scale,  scale,  -scale, -scale, scale};
   indices_ = {
       0,  1,  3,  1,  2,  3,   // Front face
       4,  5,  7,  5,  6,  7,   // Up face.
@@ -99,16 +68,19 @@ void Mesh::SetCube(float scale) {
       16, 17, 19, 17, 18, 19,  // Right face.
       20, 21, 22, 22, 21, 23,  // Left face.
   };
-  if (size < 1) {
-    size = 1.0f;
+  if (scale < 1) {
+    scale = 1.0f;
   }
+  float x = scale * factor.x;
+  float y = scale * factor.y;
   tex_coord_ = {
-      size, size, 0.f,  size, 0.f,  0.f,  size, 0.f,   // front
-      size, size, 0.f,  size, 0.f,  0.f,  size, 0.f,   // up
-      size, size, size, 0.f,  0.f,  0.f,  0.f,  size,  // back
-      size, size, size, 0.f,  0.f,  0.f,  0.f,  size,  // down
-      size, size, 0.f,  size, 0.f,  0.f,  size, 0.f,   // right
-      0.f,  size, 0.f,  0.f,  size, size, size, 0.f,   // left
+      scale, y,     0.f,   y,     0.f, 0.f, x,     0.f,  // front
+
+      scale, scale, 0.f,   scale, 0.f, 0.f, scale, 0.f,    // up
+      x,     y,     x,     0.f,   0.f, 0.f, 0.f,   y,      // back
+      scale, scale, scale, 0.f,   0.f, 0.f, 0.f,   scale,  // down
+      x,     y,     0.f,   y,     0.f, 0.f, x,     0.f,    // right
+      0.f,   y,     0.f,   0.f,   x,   y,   x,     0.f,    // left
   };
   normals_ = {
       0.0f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f,  // front
@@ -139,9 +111,8 @@ void Mesh::SetCube(float scale) {
   glGenVertexArrays(1, &vao_);
   glBindVertexArray(vao_);
 
-  for (int i = 0; i < 4; ++i) {
-    vbo_.emplace_back();
-  }
+  vbo_.resize(4);
+
   glGenBuffers(4, &vbo_[0]);
   BindVBO(0, vertices_, 3);
   BindVBO(1, tex_coord_, 2);
@@ -227,7 +198,7 @@ void Mesh::clear() {
   indices_.clear();
 }
 
-void Model::Load(std::string_view path, bool gamma, bool flip, bool pbr) {
+void Model::Load(std::string_view path, bool flip) {
   Assimp::Importer import;
   auto flags = aiProcess_Triangulate | aiProcess_CalcTangentSpace;
   if (flip) {
@@ -243,28 +214,26 @@ void Model::Load(std::string_view path, bool gamma, bool flip, bool pbr) {
 
   dir_path_ = path.substr(0, path.find_last_of('/'));
 
-  ProcessNode(scene->mRootNode, scene, gamma, flip, pbr);
+  ProcessNode(scene->mRootNode, scene);
 }
 
-void Model::ProcessNode(aiNode* node, const aiScene* scene, bool gamma,
-                        bool flip, bool pbr) {
+void Model::ProcessNode(aiNode* node, const aiScene* scene) {
   meshes_.reserve(node->mNumMeshes);
 
   // Process all the node's meshes (if any).
   for (std::size_t i = 0; i < node->mNumMeshes; i++) {
     aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-    meshes_.emplace_back(ProcessMesh(mesh, scene, gamma, flip, pbr));
+    meshes_.emplace_back(ProcessMesh(mesh, scene));
   }
 
   // Do the same for each of its children.
   for (std::size_t i = 0; i < node->mNumChildren; i++) {
-    ProcessNode(node->mChildren[i], scene, gamma, flip, pbr);
+    ProcessNode(node->mChildren[i], scene);
   }
 }
 
-Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene, bool gamma,
-                        bool flip, bool pbr) {
-  Mesh my_mesh(MeshType::Model);
+Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene) {
+  Mesh my_mesh;
 
   for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
     my_mesh.vertices_.push_back(mesh->mVertices[i].x);
@@ -302,37 +271,11 @@ Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene, bool gamma,
     }
   }
 
-  if (!pbr) {
-    // Process material.
-    if (mesh->mMaterialIndex >= 0) {
-      aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-
-      //  Diffuse maps.
-      std::vector<Texture> diffuseMaps = LoadAllTextures(
-          material, aiTextureType_DIFFUSE, "texture_diffuse", flip);
-      my_mesh.textures_.insert(my_mesh.textures_.end(), diffuseMaps.begin(),
-                               diffuseMaps.end());
-
-      // Specular maps.
-      std::vector<Texture> specularMaps = LoadAllTextures(
-          material, aiTextureType_SPECULAR, "texture_specular", flip);
-      my_mesh.textures_.insert(my_mesh.textures_.end(), specularMaps.begin(),
-                               specularMaps.end());
-
-      // Specular maps.
-      std::vector<Texture> normalMaps = LoadAllTextures(
-          material, aiTextureType_HEIGHT, "texture_normal", flip);
-      my_mesh.textures_.insert(my_mesh.textures_.end(), normalMaps.begin(),
-                               normalMaps.end());
-    }
-  }
-
   glGenVertexArrays(1, &my_mesh.vao_);
   glBindVertexArray(my_mesh.vao_);
 
-  for (int i = 0; i < 5; ++i) {
-    my_mesh.vbo_.emplace_back();
-  }
+  my_mesh.vbo_.resize(5);
+
   glGenBuffers(4, &my_mesh.vbo_[0]);
   my_mesh.BindVBO(0, my_mesh.vertices_, 3);
   my_mesh.BindVBO(1, my_mesh.tex_coord_, 2);
@@ -346,36 +289,6 @@ Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene, bool gamma,
                my_mesh.indices_.size() * sizeof(GLuint),
                my_mesh.indices_.data(), GL_STATIC_DRAW);
   return my_mesh;
-}
-
-std::vector<Texture> Model::LoadAllTextures(aiMaterial* mat, aiTextureType type,
-                                            std::string type_name, bool flip) {
-  std::vector<Texture> textures;
-  for (unsigned int i = 0; i < mat->GetTextureCount(type); i++) {
-    aiString str;
-    mat->GetTexture(type, i, &str);
-
-    bool skip = false;
-    for (unsigned int j = 0; j < tm_.loaded_textures.size(); j++) {
-      if (dir_path_ + tm_.loaded_textures[j].path == dir_path_ + str.data) {
-        textures.push_back(tm_.loaded_textures[j]);
-        skip = true;
-        break;
-      }
-    }
-
-    // If texture hasn't been loaded already, load it.
-    if (!skip) {
-      Texture texture;
-      std::string texture_path = str.data;
-      texture.id = tm_.LoadTexture(dir_path_ + '/' + texture_path, flip);
-      texture.type = type_name;
-      texture.path = texture_path;
-      textures.push_back(texture);
-      tm_.loaded_textures.push_back(texture);
-    }
-  }
-  return textures;
 }
 
 void Model::Draw() {
