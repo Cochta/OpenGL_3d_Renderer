@@ -9,8 +9,6 @@
 class Scene {
  public:
   Camera camera_;
-  virtual std::string GetName() = 0;
-  virtual std::string GetDescription() = 0;
 
   virtual ~Scene() = default;
   virtual void OnEvent(const SDL_Event &event) {}

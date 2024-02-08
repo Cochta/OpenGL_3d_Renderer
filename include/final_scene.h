@@ -120,9 +120,6 @@ class FinalScene final : public Scene {
   void End() override;
   void Update(float dt) override;
 
-  std::string GetName() override;
-  std::string GetDescription() override;
-
  private:
   void BeginSkyBox();
   void UpdateSkyBox();

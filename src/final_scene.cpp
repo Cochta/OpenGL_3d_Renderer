@@ -64,10 +64,6 @@ void FinalScene::End() {
   DeleteShadowMap();
 }
 
-std::string FinalScene::GetName() { return "Final"; }
-
-std::string FinalScene::GetDescription() { return "Final scene for the exam"; }
-
 void FinalScene::BeginSkyBox() {
   background_pipe_.LoadShader("data/shaders/final/skybox.vert",
                               "data/shaders/final/skybox.frag");

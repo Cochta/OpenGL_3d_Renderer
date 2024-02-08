@@ -41,11 +41,27 @@ void SceneManager::BeginScene() noexcept { scenes_[sceneIdx_]->Begin(); }
 void SceneManager::EndScene() noexcept { scenes_[sceneIdx_]->End(); }
 
 void SceneManager::DrawImGui() noexcept {
-  ImGui::Begin("Info");
+  static bool is_first_frame = true;
+  if (is_first_frame) {
+    ImGui::SetNextWindowSize(ImVec2(350, 200));  // Set the width and height
+    ImGui::SetNextWindowPos(ImVec2(10, 10));
+    is_first_frame = false;
+  }
+
+  ImGui::Begin("Demo scene");
 
   ImGui::Spacing();
 
-  ImGui::TextWrapped(scenes_[sceneIdx_]->GetDescription().c_str());
+  ImGui::TextWrapped("CONTROLS:");
+  ImGui::TextWrapped("W - move forward");
+  ImGui::TextWrapped("S - move backward");
+  ImGui::TextWrapped("A - move left");
+  ImGui::TextWrapped("D - move right");
+  ImGui::Spacing();
+  ImGui::TextWrapped("L CTRL - move down");
+  ImGui::TextWrapped("SPACE - move up");
+  ImGui::Spacing();
+  ImGui::TextWrapped("LEFT MOUSE CLICK AND MOVE MOUSE - move camera");
 
   ImGui::Spacing();
 
