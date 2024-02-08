@@ -532,7 +532,7 @@ void FinalScene::BeginSSAO() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-  ssao_pipe_.LoadShader("data/shaders/Final/pb_bloom.vert",
+  ssao_pipe_.LoadShader("data/shaders/Final/screen_tex.vert",
                         "data/shaders/Final/ssao.frag");
   ssao_pipe_.LoadProgram();
   ssao_pipe_.Bind();
@@ -543,7 +543,7 @@ void FinalScene::BeginSSAO() {
   ssao_pipe_.SetFloat("radius", kSsaoRadius);
   ssao_pipe_.SetFloat("biais", kSsaoBiais);
 
-  ssao_blur_pipe_.LoadShader("data/shaders/Final/pb_bloom.vert",
+  ssao_blur_pipe_.LoadShader("data/shaders/Final/screen_tex.vert",
                              "data/shaders/Final/ssao_blur.frag");
   ssao_blur_pipe_.LoadProgram();
   ssao_blur_pipe_.Bind();
@@ -706,7 +706,7 @@ void FinalScene::DeleteShadowMap() {
 }
 
 void FinalScene::BeginPBR() {
-  pbr_pipe_.LoadShader("data/shaders/Final/pb_bloom.vert",
+  pbr_pipe_.LoadShader("data/shaders/Final/screen_tex.vert",
                        "data/shaders/Final/pbr.frag");
 
   pbr_pipe_.LoadProgram();
@@ -773,49 +773,68 @@ void FinalScene::DeletePBR() {
 void FinalScene::BeginModels() {
   lamp_model_.Load("data/models/final/lamp/msh_lampadaire_01.obj");
 
-  lamp_model_.albedo =
+  lamp_model_.mat.albedo =
       tm_.LoadTexture("data/models/final/lamp/lampBaseColor.png", true, true);
-  lamp_model_.normal = tm_.LoadTexture("data/models/final/lamp/lampNormal.png");
-  lamp_model_.ao = tm_.LoadTexture("data/models/final/lamp/lampAO.png");
-  lamp_model_.metallic =
+  lamp_model_.mat.normal =
+      tm_.LoadTexture("data/models/final/lamp/lampNormal.png");
+  lamp_model_.mat.ao = tm_.LoadTexture("data/models/final/lamp/lampAO.png");
+  lamp_model_.mat.metallic =
       tm_.LoadTexture("data/models/final/lamp/lampMetallic.png");
-  lamp_model_.roughness =
+  lamp_model_.mat.roughness =
       tm_.LoadTexture("data/models/final/lamp/lampRoughness.png");
 
   backpack_model_.Load("data/models/final/backpack/backpack.obj");
 
-  backpack_model_.albedo =
+  backpack_model_.mat.albedo =
       tm_.LoadTexture("data/models/final/backpack/diffuse.jpg", false, true);
-  backpack_model_.normal =
+  backpack_model_.mat.normal =
       tm_.LoadTexture("data/models/final/backpack/normal.png", false);
-  backpack_model_.ao =
+  backpack_model_.mat.ao =
       tm_.LoadTexture("data/models/final/backpack/ao.jpg", false);
-  backpack_model_.metallic =
+  backpack_model_.mat.metallic =
       tm_.LoadTexture("data/models/final/backpack/specular.jpg", false);
-  backpack_model_.roughness =
+  backpack_model_.mat.roughness =
       tm_.LoadTexture("data/models/final/backpack/roughness.jpg", false);
 
   man_model_.Load("data/models/final/man/man1.obj");
 
-  man_model_.albedo =
+  man_model_.mat.albedo =
       tm_.LoadTexture("data/models/final/man/albedo.jpg", true, true);
-  man_model_.normal = tm_.LoadTexture("data/models/final/man/normal.png");
-  man_model_.ao = tm_.LoadTexture("data/models/final/man/ao.png");
-  man_model_.metallic = tm_.LoadTexture("data/models/final/man/metallic.png");
-  man_model_.roughness = tm_.LoadTexture("data/models/final/man/roughness.jpg");
+  man_model_.mat.normal = tm_.LoadTexture("data/models/final/man/normal.png");
+  man_model_.mat.ao = tm_.LoadTexture("data/models/final/man/ao.png");
+  man_model_.mat.metallic =
+      tm_.LoadTexture("data/models/final/man/metallic.png");
+  man_model_.mat.roughness =
+      tm_.LoadTexture("data/models/final/man/roughness.jpg");
+
+  steel_.albedo =
+      tm_.LoadTexture("data/textures/pbr/steel/albedo.png", true, true);
+  steel_.normal = tm_.LoadTexture("data/textures/pbr/steel/normal.png");
+  steel_.metallic = tm_.LoadTexture("data/textures/pbr/steel/metallic.png");
+  steel_.ao = tm_.LoadTexture("data/textures/pbr/steel/ao.png");
+  steel_.roughness = tm_.LoadTexture("data/textures/pbr/steel/roughness.png");
+
+  titanium_.albedo =
+      tm_.LoadTexture("data/textures/pbr/titanium/albedo.png", true, true);
+  titanium_.normal = tm_.LoadTexture("data/textures/pbr/titanium/normal.png");
+  titanium_.metallic =
+      tm_.LoadTexture("data/textures/pbr/titanium/metallic.png");
+  titanium_.ao = tm_.LoadTexture("data/textures/pbr/titanium/ao.png");
+  titanium_.roughness =
+      tm_.LoadTexture("data/textures/pbr/titanium/roughness.png");
 }
 
 void FinalScene::UpdateModels(Pipeline& pipeline) {
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, lamp_model_.albedo);
+  glBindTexture(GL_TEXTURE_2D, lamp_model_.mat.albedo);
   glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, lamp_model_.normal);
+  glBindTexture(GL_TEXTURE_2D, lamp_model_.mat.normal);
   glActiveTexture(GL_TEXTURE2);
-  glBindTexture(GL_TEXTURE_2D, lamp_model_.metallic);
+  glBindTexture(GL_TEXTURE_2D, lamp_model_.mat.metallic);
   glActiveTexture(GL_TEXTURE3);
-  glBindTexture(GL_TEXTURE_2D, lamp_model_.roughness);
+  glBindTexture(GL_TEXTURE_2D, lamp_model_.mat.roughness);
   glActiveTexture(GL_TEXTURE4);
-  glBindTexture(GL_TEXTURE_2D, lamp_model_.ao);
+  glBindTexture(GL_TEXTURE_2D, lamp_model_.mat.ao);
 
   model = glm::mat4(1.0f);
   model = glm::translate(model, glm::vec3(0, 0, -10));
@@ -830,15 +849,15 @@ void FinalScene::UpdateModels(Pipeline& pipeline) {
   lamp_model_.Draw();
 
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, backpack_model_.albedo);
+  glBindTexture(GL_TEXTURE_2D, backpack_model_.mat.albedo);
   glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, backpack_model_.normal);
+  glBindTexture(GL_TEXTURE_2D, backpack_model_.mat.normal);
   glActiveTexture(GL_TEXTURE2);
-  glBindTexture(GL_TEXTURE_2D, backpack_model_.metallic);
+  glBindTexture(GL_TEXTURE_2D, backpack_model_.mat.metallic);
   glActiveTexture(GL_TEXTURE3);
-  glBindTexture(GL_TEXTURE_2D, backpack_model_.roughness);
+  glBindTexture(GL_TEXTURE_2D, backpack_model_.mat.roughness);
   glActiveTexture(GL_TEXTURE4);
-  glBindTexture(GL_TEXTURE_2D, backpack_model_.ao);
+  glBindTexture(GL_TEXTURE_2D, backpack_model_.mat.ao);
 
   model = glm::mat4(1.0f);
   model = glm::translate(model, glm::vec3(0, 2.2, 0));
@@ -851,20 +870,64 @@ void FinalScene::UpdateModels(Pipeline& pipeline) {
   backpack_model_.Draw();
 
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, man_model_.albedo);
+  glBindTexture(GL_TEXTURE_2D, man_model_.mat.albedo);
   glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, man_model_.normal);
+  glBindTexture(GL_TEXTURE_2D, man_model_.mat.normal);
   glActiveTexture(GL_TEXTURE2);
-  glBindTexture(GL_TEXTURE_2D, man_model_.metallic);
+  glBindTexture(GL_TEXTURE_2D, man_model_.mat.metallic);
   glActiveTexture(GL_TEXTURE3);
-  glBindTexture(GL_TEXTURE_2D, man_model_.roughness);
+  glBindTexture(GL_TEXTURE_2D, man_model_.mat.roughness);
   glActiveTexture(GL_TEXTURE4);
-  glBindTexture(GL_TEXTURE_2D, man_model_.ao);
+  glBindTexture(GL_TEXTURE_2D, man_model_.mat.ao);
 
   model = glm::mat4(1.0f);
   model = glm::translate(model, glm::vec3(3, 0.5, -2));
-  model = glm::scale(model, glm::vec3(0.025));
+  model = glm::scale(model, glm::vec3(0.025f));
   model = glm::rotate(model, glm::radians(180.f), glm::vec3(0, 1, 0));
+  pipeline.Bind();
+  pipeline.SetMat4("model", model);
+  pipeline.SetMat4("normalMatrix",
+                   glm::mat4(glm::transpose(glm::inverse(view * model))));
+
+  man_model_.Draw();
+
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, steel_.albedo);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, steel_.normal);
+  glActiveTexture(GL_TEXTURE2);
+  glBindTexture(GL_TEXTURE_2D, steel_.metallic);
+  glActiveTexture(GL_TEXTURE3);
+  glBindTexture(GL_TEXTURE_2D, steel_.roughness);
+  glActiveTexture(GL_TEXTURE4);
+  glBindTexture(GL_TEXTURE_2D, steel_.ao);
+
+  model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(6, 0.5, -8));
+  model = glm::scale(model, glm::vec3(0.025f));
+  model = glm::rotate(model, glm::radians(-110.f), glm::vec3(0, 1, 0));
+  pipeline.Bind();
+  pipeline.SetMat4("model", model);
+  pipeline.SetMat4("normalMatrix",
+                   glm::mat4(glm::transpose(glm::inverse(view * model))));
+
+  man_model_.Draw();
+
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, titanium_.albedo);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, titanium_.normal);
+  glActiveTexture(GL_TEXTURE2);
+  glBindTexture(GL_TEXTURE_2D, titanium_.metallic);
+  glActiveTexture(GL_TEXTURE3);
+  glBindTexture(GL_TEXTURE_2D, titanium_.roughness);
+  glActiveTexture(GL_TEXTURE4);
+  glBindTexture(GL_TEXTURE_2D, titanium_.ao);
+
+  model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(-6, 0.5, -5));
+  model = glm::scale(model, glm::vec3(0.025f));
+  model = glm::rotate(model, glm::radians(110.f), glm::vec3(0, 1, 0));
   pipeline.Bind();
   pipeline.SetMat4("model", model);
   pipeline.SetMat4("normalMatrix",
@@ -880,7 +943,7 @@ void FinalScene::DeleteModels() {
 }
 
 void FinalScene::BeginBloom() {
-  hdr_pipe_.LoadShader("data/shaders/final/pb_bloom.vert",
+  hdr_pipe_.LoadShader("data/shaders/final/screen_tex.vert",
                        "data/shaders/final/hdr.frag");
   hdr_pipe_.LoadProgram();
 
@@ -888,7 +951,7 @@ void FinalScene::BeginBloom() {
   hdr_pipe_.SetInt("hdrBuffer", 0);
   hdr_pipe_.SetInt("bloomBlur", 1);
 
-  down_sample_pipe_.LoadShader("data/shaders/final/pb_bloom.vert",
+  down_sample_pipe_.LoadShader("data/shaders/final/screen_tex.vert",
                                "data/shaders/final/down_sample.frag");
 
   down_sample_pipe_.LoadProgram();
@@ -896,7 +959,7 @@ void FinalScene::BeginBloom() {
   down_sample_pipe_.Bind();
   down_sample_pipe_.SetInt("srcTexture", 0);
 
-  up_sample_pipe_.LoadShader("data/shaders/final/pb_bloom.vert",
+  up_sample_pipe_.LoadShader("data/shaders/final/screen_tex.vert",
                              "data/shaders/final/up_sample.frag");
 
   up_sample_pipe_.LoadProgram();

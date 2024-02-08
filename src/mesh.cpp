@@ -74,8 +74,7 @@ void Mesh::SetCube(float scale, glm::vec2 factor) {
   float x = scale * factor.x;
   float y = scale * factor.y;
   tex_coord_ = {
-      scale, y,     0.f,   y,     0.f, 0.f, x,     0.f,  // front
-
+      scale, y,     0.f,   y,     0.f, 0.f, x,     0.f,    // front
       scale, scale, 0.f,   scale, 0.f, 0.f, scale, 0.f,    // up
       x,     y,     x,     0.f,   0.f, 0.f, 0.f,   y,      // back
       scale, scale, scale, 0.f,   0.f, 0.f, 0.f,   scale,  // down

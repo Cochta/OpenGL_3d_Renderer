@@ -56,6 +56,9 @@ class FinalScene final : public Scene {
   Model backpack_model_;
   Model man_model_;
 
+  Material steel_;
+  Material titanium_;
+
   glm::mat4 captureProjection = glm::mat4(1.0f);
   std::array<glm::mat4, 6> captureViews{};
 

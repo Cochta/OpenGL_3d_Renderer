@@ -31,13 +31,17 @@ class Mesh {
   void clear();
   void BindVBO(int index, std::vector<float> elements, int size);
 };
-class Model {
- public:
+
+struct Material {
   GLuint albedo = 0;
   GLuint normal = 0;
   GLuint metallic = 0;
   GLuint ao = 0;
   GLuint roughness = 0;
+};
+class Model {
+ public:
+  Material mat;
 
  private:
   TextureManager tm_;
