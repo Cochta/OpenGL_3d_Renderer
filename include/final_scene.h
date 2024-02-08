@@ -19,6 +19,7 @@ class FinalScene final : public Scene {
   Mesh cube_;
   Mesh cube_ground_;
   Mesh quad_screen_;
+  Mesh sphere_;
 
   Pipeline light_cube_;
 
@@ -36,12 +37,6 @@ class FinalScene final : public Scene {
   Pipeline up_sample_pipe_;
   Pipeline hdr_pipe_;
 
-  GLuint ground_albedo_ = 0;
-  GLuint ground_normal_ = 0;
-  GLuint ground_metallic_ = 0;
-  GLuint ground_ao_ = 0;
-  GLuint ground_roughness_ = 0;
-
   GLuint captureFBO = 0;
 
   GLuint captureRBO = 0;
@@ -55,6 +50,8 @@ class FinalScene final : public Scene {
   Model lamp_model_;
   Model backpack_model_;
   Model man_model_;
+
+  Material ground_mat_;
 
   Material steel_;
   Material titanium_;
@@ -161,6 +158,8 @@ class FinalScene final : public Scene {
   void BeginModels();
   void UpdateModels(Pipeline &pipeline);
   void DeleteModels();
+
+  void UpdateSpheres(Pipeline &pipeline);
 
   void BeginBloom();
   void UpdateBloom();

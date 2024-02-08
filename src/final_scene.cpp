@@ -6,6 +6,7 @@ void FinalScene::Begin() {
   cube_.SetCube();
   cube_ground_.SetCube(30, {1, 0.1});
   quad_screen_.SetQuad(2);
+  sphere_.SetSphere();
 
   BeginBloom();
   BeginSkyBox();
@@ -289,7 +290,7 @@ void FinalScene::CreateBRDF() {
 
   // pre-allocate enough memory for the LUT texture.
   glBindTexture(GL_TEXTURE_2D, brdfLUTTexture);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, 512, 512, 0, GL_RG, GL_FLOAT, 0);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, 1024, 1024, 0, GL_RG, GL_FLOAT, 0);
   // be sure to set wrapping mode to GL_CLAMP_TO_EDGE
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -300,11 +301,11 @@ void FinalScene::CreateBRDF() {
   // with BRDF shader.
   glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
   glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
-  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 512, 512);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 1024, 1024);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                          brdfLUTTexture, 0);
 
-  glViewport(0, 0, 512, 512);
+  glViewport(0, 0, 1024, 1024);
 
   brdf_pipe_.LoadShader("data/shaders/pbr/brdf.vert",
                         "data/shaders/pbr/brdf.frag");
@@ -341,44 +342,19 @@ void FinalScene::UpdateLamp() {
 void FinalScene::DeleteLamp() { light_cube_.Delete(); }
 
 void FinalScene::BeginGround() {
-  // ground_albedo_ =
-  // tm_.LoadTexture("data/textures/pbr/alley_brick/albedo.png"); ground_normal_
-  // = tm_.LoadTexture("data/textures/pbr/alley_brick/normal.png"); ground_ao_ =
-  // tm_.LoadTexture("data/textures/pbr/alley_brick/ao.png"); ground_metallic_ =
-  //     tm_.LoadTexture("data/textures/pbr/alley_brick/metallic.png");
-  // ground_roughness_ =
-  //     tm_.LoadTexture("data/textures/pbr/alley_brick/roughness.png");
-
-  // ground_albedo_ =
-  // tm_.LoadTexture("data/textures/pbr/modern_brick/albedo.png");
-  // ground_normal_ =
-  // tm_.LoadTexture("data/textures/pbr/modern_brick/normal.png"); ground_ao_ =
-  // tm_.LoadTexture("data/textures/pbr/modern_brick/ao.png"); ground_metallic_
-  // =
-  //     tm_.LoadTexture("data/textures/pbr/modern_brick/metallic.png");
-  // ground_roughness_ =
-  //     tm_.LoadTexture("data/textures/pbr/modern_brick/roughness.png");
-
-  ground_albedo_ = tm_.LoadTexture("data/textures/pbr/stonework/albedo.png");
-  ground_normal_ = tm_.LoadTexture("data/textures/pbr/stonework/normal.png");
-  ground_ao_ = tm_.LoadTexture("data/textures/pbr/stonework/ao.png");
-  ground_metallic_ =
+  ground_mat_.albedo =
+      tm_.LoadTexture("data/textures/pbr/stonework/albedo.png");
+  ground_mat_.normal =
+      tm_.LoadTexture("data/textures/pbr/stonework/normal.png");
+  ground_mat_.ao = tm_.LoadTexture("data/textures/pbr/stonework/ao.png");
+  ground_mat_.metallic =
       tm_.LoadTexture("data/textures/pbr/stonework/metallic.png");
-  ground_roughness_ =
+  ground_mat_.roughness =
       tm_.LoadTexture("data/textures/pbr/stonework/roughness.png");
 }
 
 void FinalScene::UpdateGround(Pipeline& pipeline) {
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, ground_albedo_);
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, ground_normal_);
-  glActiveTexture(GL_TEXTURE2);
-  glBindTexture(GL_TEXTURE_2D, ground_metallic_);
-  glActiveTexture(GL_TEXTURE3);
-  glBindTexture(GL_TEXTURE_2D, ground_roughness_);
-  glActiveTexture(GL_TEXTURE4);
-  glBindTexture(GL_TEXTURE_2D, ground_ao_);
+  ground_mat_.Set();
 
   model = glm::mat4(1.0f);
   model = glm::translate(model, glm::vec3(0, -2.45, 0));
@@ -390,13 +366,7 @@ void FinalScene::UpdateGround(Pipeline& pipeline) {
   cube_ground_.Draw();
 }
 
-void FinalScene::DeleteGround() {
-  ground_albedo_ = 0;
-  ground_normal_ = 0;
-  ground_metallic_ = 0;
-  ground_ao_ = 0;
-  ground_roughness_ = 0;
-}
+void FinalScene::DeleteGround() { ground_mat_.Clear(); }
 
 void FinalScene::BeginGBuffer() {
   geom_pipe_.LoadShader("data/shaders/Final/g_buffer.vert",
@@ -476,6 +446,7 @@ void FinalScene::UpdateGBuffer() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   UpdateGround(geom_pipe_);
   UpdateModels(geom_pipe_);
+  UpdateSpheres(geom_pipe_);
 }
 
 void FinalScene::DeleteGBuffer() {
@@ -693,6 +664,7 @@ void FinalScene::BeginShadowMap() {
     shadow_map_pipe_.SetMat4("lightSpaceMatrix", lightSpaceMatrix);
     UpdateGround(shadow_map_pipe_);
     UpdateModels(shadow_map_pipe_);
+    UpdateSpheres(shadow_map_pipe_);
   }
 
   glViewport(0, 0, Metrics::width_, Metrics::height_);
@@ -825,16 +797,7 @@ void FinalScene::BeginModels() {
 }
 
 void FinalScene::UpdateModels(Pipeline& pipeline) {
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, lamp_model_.mat.albedo);
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, lamp_model_.mat.normal);
-  glActiveTexture(GL_TEXTURE2);
-  glBindTexture(GL_TEXTURE_2D, lamp_model_.mat.metallic);
-  glActiveTexture(GL_TEXTURE3);
-  glBindTexture(GL_TEXTURE_2D, lamp_model_.mat.roughness);
-  glActiveTexture(GL_TEXTURE4);
-  glBindTexture(GL_TEXTURE_2D, lamp_model_.mat.ao);
+  lamp_model_.mat.Set();
 
   model = glm::mat4(1.0f);
   model = glm::translate(model, glm::vec3(0, 0, -10));
@@ -848,16 +811,7 @@ void FinalScene::UpdateModels(Pipeline& pipeline) {
 
   lamp_model_.Draw();
 
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, backpack_model_.mat.albedo);
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, backpack_model_.mat.normal);
-  glActiveTexture(GL_TEXTURE2);
-  glBindTexture(GL_TEXTURE_2D, backpack_model_.mat.metallic);
-  glActiveTexture(GL_TEXTURE3);
-  glBindTexture(GL_TEXTURE_2D, backpack_model_.mat.roughness);
-  glActiveTexture(GL_TEXTURE4);
-  glBindTexture(GL_TEXTURE_2D, backpack_model_.mat.ao);
+  backpack_model_.mat.Set();
 
   model = glm::mat4(1.0f);
   model = glm::translate(model, glm::vec3(0, 2.2, 0));
@@ -869,16 +823,7 @@ void FinalScene::UpdateModels(Pipeline& pipeline) {
 
   backpack_model_.Draw();
 
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, man_model_.mat.albedo);
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, man_model_.mat.normal);
-  glActiveTexture(GL_TEXTURE2);
-  glBindTexture(GL_TEXTURE_2D, man_model_.mat.metallic);
-  glActiveTexture(GL_TEXTURE3);
-  glBindTexture(GL_TEXTURE_2D, man_model_.mat.roughness);
-  glActiveTexture(GL_TEXTURE4);
-  glBindTexture(GL_TEXTURE_2D, man_model_.mat.ao);
+  man_model_.mat.Set();
 
   model = glm::mat4(1.0f);
   model = glm::translate(model, glm::vec3(3, 0.5, -2));
@@ -891,16 +836,7 @@ void FinalScene::UpdateModels(Pipeline& pipeline) {
 
   man_model_.Draw();
 
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, steel_.albedo);
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, steel_.normal);
-  glActiveTexture(GL_TEXTURE2);
-  glBindTexture(GL_TEXTURE_2D, steel_.metallic);
-  glActiveTexture(GL_TEXTURE3);
-  glBindTexture(GL_TEXTURE_2D, steel_.roughness);
-  glActiveTexture(GL_TEXTURE4);
-  glBindTexture(GL_TEXTURE_2D, steel_.ao);
+  steel_.Set();
 
   model = glm::mat4(1.0f);
   model = glm::translate(model, glm::vec3(6, 0.5, -8));
@@ -913,16 +849,7 @@ void FinalScene::UpdateModels(Pipeline& pipeline) {
 
   man_model_.Draw();
 
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, titanium_.albedo);
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, titanium_.normal);
-  glActiveTexture(GL_TEXTURE2);
-  glBindTexture(GL_TEXTURE_2D, titanium_.metallic);
-  glActiveTexture(GL_TEXTURE3);
-  glBindTexture(GL_TEXTURE_2D, titanium_.roughness);
-  glActiveTexture(GL_TEXTURE4);
-  glBindTexture(GL_TEXTURE_2D, titanium_.ao);
+  titanium_.Set();
 
   model = glm::mat4(1.0f);
   model = glm::translate(model, glm::vec3(-6, 0.5, -5));
@@ -940,6 +867,34 @@ void FinalScene::DeleteModels() {
   lamp_model_.Clear();
   man_model_.Clear();
   backpack_model_.Clear();
+
+  steel_.Clear();
+  titanium_.Clear();
+}
+
+void FinalScene::UpdateSpheres(Pipeline& pipeline) {
+  steel_.Set();
+
+  model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(5.2, 1.8, -6));
+  pipeline.Bind();
+  pipeline.SetMat4("model", model);
+  pipeline.SetMat4("normalMatrix",
+                   glm::mat4(glm::transpose(glm::inverse(view * model))));
+
+  sphere_.Draw(true);
+
+  titanium_.Set();
+
+  model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(-5, 1.8, -9));
+
+  pipeline.Bind();
+  pipeline.SetMat4("model", model);
+  pipeline.SetMat4("normalMatrix",
+                   glm::mat4(glm::transpose(glm::inverse(view * model))));
+
+  sphere_.Draw(true);
 }
 
 void FinalScene::BeginBloom() {

@@ -145,6 +145,10 @@ void Mesh::SetSphere() {
       positions.push_back(glm::vec3(xPos, yPos, zPos));
       uv.push_back(glm::vec2(xSegment, ySegment));
       normals.push_back(glm::vec3(xPos, yPos, zPos));
+      
+      tangents_.push_back(std::sin(xSegment * 2.0f * PI) * std::cos(ySegment * PI));
+      tangents_.push_back(std::sin(xSegment * 2.0f * PI) * std::sin(ySegment * PI));
+      tangents_.push_back(std::cos(xSegment * 2.0f * PI));
     }
   }
 
@@ -180,12 +184,29 @@ void Mesh::SetSphere() {
       tex_coord_.push_back(uv[i].y);
     }
   }
-}
 
-void Mesh::Draw() {
+  glGenVertexArrays(1, &vao_);  // create
   glBindVertexArray(vao_);
 
-  glDrawElements(GL_TRIANGLES, indices_.size(), GL_UNSIGNED_INT, 0);
+  vbo_.resize(4);
+
+  glGenBuffers(4, &vbo_[0]);
+  BindVBO(0, vertices_, 3);
+  BindVBO(1, tex_coord_, 2);
+  BindVBO(2, normals_, 3);
+  BindVBO(3, tangents_, 3);
+
+  glGenBuffers(1, &ebo_);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo_);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_.size() * sizeof(GLuint),
+               indices_.data(), GL_STATIC_DRAW);
+}
+
+void Mesh::Draw(bool is_sphere) {
+  glBindVertexArray(vao_);
+
+  glDrawElements(!is_sphere ? GL_TRIANGLES : GL_TRIANGLE_STRIP, indices_.size(),
+                 GL_UNSIGNED_INT, 0);
 }
 
 void Mesh::clear() {
@@ -195,6 +216,29 @@ void Mesh::clear() {
   tangents_.clear();
 
   indices_.clear();
+}
+
+void Material::Set()
+{
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, albedo);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, normal);
+  glActiveTexture(GL_TEXTURE2);
+  glBindTexture(GL_TEXTURE_2D, metallic);
+  glActiveTexture(GL_TEXTURE3);
+  glBindTexture(GL_TEXTURE_2D, roughness);
+  glActiveTexture(GL_TEXTURE4);
+  glBindTexture(GL_TEXTURE_2D, ao);
+}
+
+void Material::Clear()
+{
+  albedo = 0;
+  normal = 0;
+  metallic = 0;
+  ao = 0;
+  roughness = 0;
 }
 
 void Model::Load(std::string_view path, bool flip) {
@@ -300,4 +344,5 @@ void Model::Clear() {
   for (auto& mesh : meshes_) {
     mesh.clear();
   }
+  mat.Clear();
 }

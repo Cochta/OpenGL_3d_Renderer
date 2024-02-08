@@ -27,7 +27,7 @@ class Mesh {
   std::vector<GLuint> vbo_;
   GLuint ebo_ = 0;
 
-  void Draw();
+  void Draw(bool is_sphere = false);
   void clear();
   void BindVBO(int index, std::vector<float> elements, int size);
 };
@@ -38,6 +38,9 @@ struct Material {
   GLuint metallic = 0;
   GLuint ao = 0;
   GLuint roughness = 0;
+
+	void Set();
+  void Clear();
 };
 class Model {
  public:
