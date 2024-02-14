@@ -29,7 +29,7 @@ Content
 Texture loading & Skybox
 ==============================================================
 
-![Skybox](ressource/Skybox.PNG)
+![Skybox](ressource/Skybox.png)
 
 To load this skybox texture found here: https://polyhaven.com/a/st_peters_square_night,
 I used the stb_image library found here https://github.com/nothings/stb
@@ -110,7 +110,7 @@ for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
   }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-![Here we can see a street lamp and a brick ground](ressource/loading.PNG)
+![Here we can see a street lamp and a brick ground](ressource/loading.png)
 
 
 Face culling
@@ -127,7 +127,7 @@ glCullFace(GL_BACK); // for the rest
 
 Here are 2 views with the camera inside the floor:
 
-![without culling](ressource/noCull.PNG) ![with culling](ressource/cull.PNG)
+![without culling](ressource/noCull.png) ![with culling](ressource/cull.png)
 
 Physically Based Bloom 
 ==============================================================
@@ -135,7 +135,7 @@ Physically Based Bloom
 For my street lamp i wanted it to be the main light source of the scene and so i added a physically based bloom in post processing, 
 the bloom also works on the skybox "light sources".
 
-![without bloom](ressource/noBloom.PNG) ![with bloom](ressource/bloom.PNG)
+![without bloom](ressource/noBloom.png) ![with bloom](ressource/bloom.png)
 
 Basically, i apply bloom to all values that are superior to 1, it works for the skybox because it is in HDR (High Dynamic Range)
 
@@ -170,15 +170,15 @@ Deferred shading
 
 Firstly i draw all my objects inside a G buffer, i use all channels to store the data.
 
-![positions (RGB) and metallic (A)](ressource/position.PNG) ![normals (RGB) and roughness (A)](ressource/normal.PNG)
-![albedo (RGB) and ambient occlusion (A)](ressource/albedo.PNG)
+![positions (RGB) and metallic (A)](ressource/position.png) ![normals (RGB) and roughness (A)](ressource/normal.png)
+![albedo (RGB) and ambient occlusion (A)](ressource/albedo.png)
 
 Screen Space Ambient Occlusion (SSAO)
 ==============================================================
 
 Then i generate a texture to add some small shadows to the curvitude of the objects.
 
-![ssao texture](ressource/ssao.PNG)
+![ssao texture](ressource/ssao.png)
 
 then in the fragment shader i just multiply the basic ao by the ssao.
 
@@ -194,7 +194,7 @@ Instead of a classic directional light i decided to have a point light, to have 
 
 Here are 3 of the textures so you can see how it looks like, (it is reversed, it is normal)
 
-![x-](ressource/x-.PNG)![z+](ressource/z+.PNG)![x+](ressource/x+.PNG)
+![x-](ressource/x-.png)![z+](ressource/z+.png)![x+](ressource/x+.png)
 
 PBR & IBL
 ==============================================================
