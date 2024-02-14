@@ -119,7 +119,6 @@ void main()
     float ao = texture(g_albedo_ao, texCoords).a;
 
     float ssao = texture(ssao_tex, texCoords).r;
-    float combined_ao_factor = 1.0;
     ao *= ssao;
 
     // input lighting data
