@@ -12,6 +12,19 @@ find_package(imgui CONFIG REQUIRED)
 find_package(Stb REQUIRED)
 find_package(assimp CONFIG REQUIRED)
 
+# Add a CMake option to enable or disable Tracy Profiler
+option(USE_TRACY "Use Tracy Profiler" OFF)
+
+if (USE_TRACY)
+    # Enable Tracy profiling by setting the preprocessor directive
+    add_compile_definitions(TRACY_ENABLE)
+    # Include Tracy's headers for the entire project
+    include_directories(TracyProfiler/tracy)
+
+    # Add the Tracy source code as part of the project
+    add_library(tracyClient STATIC TracyProfiler/TracyClient.cpp)
+endif()
+
 
 file(GLOB_RECURSE SHADER_FILES
         "data/*.vert"
@@ -89,6 +102,12 @@ target_include_directories(Common PUBLIC include/  ${Stb_INCLUDE_DIR})
 target_link_libraries(Common PUBLIC GLEW::GLEW glm::glm SDL2::SDL2 SDL2::SDL2main imgui::imgui assimp::assimp)
 set_target_properties(Common PROPERTIES UNITY_BUILD ON)
 add_dependencies(Common shader_target data_target)
+
+if (USE_TRACY)
+    target_compile_definitions(Common PUBLIC TRACY_ENABLE)
+    # Link the TracyClient library
+    target_link_libraries(Common PRIVATE tracyClient)
+endif()
 
 if(MSVC)
     target_compile_definitions(Common PUBLIC "_USE_MATH_DEFINES" WIN32_LEAN_AND_MEAN)
