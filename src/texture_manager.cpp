@@ -267,7 +267,7 @@ ImageFileReadingJob& ImageFileReadingJob::operator=(
   return *this;
 }
 
-ImageFileReadingJob::~ImageFileReadingJob() { file_buffer = nullptr; }
+ImageFileReadingJob::~ImageFileReadingJob() noexcept { file_buffer = nullptr; }
 
 void ImageFileReadingJob::Work() noexcept {
 #ifdef TRACY_ENABLE
@@ -308,7 +308,7 @@ ImageFileDecompressingJob& ImageFileDecompressingJob::operator=(
   return *this;
 }
 
-ImageFileDecompressingJob::~ImageFileDecompressingJob() {
+ImageFileDecompressingJob::~ImageFileDecompressingJob() noexcept {
   file_buffer_ = nullptr;
   texture_ = nullptr;
 }
