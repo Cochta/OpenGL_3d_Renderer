@@ -1,5 +1,11 @@
 #include "mesh.h"
 
+#ifdef TRACY_ENABLE
+#include <TracyC.h>
+
+#include <Tracy.hpp>
+#endif
+
 void Mesh::BindVBO(int index, std::vector<float> elements, int size) {
   glBindBuffer(GL_ARRAY_BUFFER, vbo_[index]);
   glBufferData(GL_ARRAY_BUFFER, elements.size() * sizeof(float),
@@ -242,6 +248,9 @@ void Material::Clear()
 }
 
 void Model::Load(std::string_view path, bool flip) {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   Assimp::Importer import;
   auto flags = aiProcess_Triangulate | aiProcess_CalcTangentSpace;
   if (flip) {

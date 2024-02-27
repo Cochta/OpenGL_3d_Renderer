@@ -148,11 +148,11 @@ class FinalScene final : public Scene {
   void UpdatePBR();
   void DeletePBR();
 
-  void BeginGround();
+  void LoadRessources();
+
   void UpdateGround(Pipeline &pipeline);
   void DeleteGround();
 
-  void BeginModels();
   void UpdateModels(Pipeline &pipeline);
   void DeleteModels();
 

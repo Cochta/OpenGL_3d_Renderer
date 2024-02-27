@@ -1,6 +1,17 @@
 #include "final_scene.h"
 
+#include <thread>
+
+#ifdef TRACY_ENABLE
+#include <TracyC.h>
+
+#include <Tracy.hpp>
+#endif
+
 void FinalScene::Begin() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
   cube_.SetCube();
@@ -14,8 +25,7 @@ void FinalScene::Begin() {
   CreatePrefilterMap();
   CreateBRDF();
   BeginLamp();
-  BeginGround();
-  BeginModels();
+  LoadRessources();
 
   BeginGBuffer();
   BeginSSAO();
@@ -27,6 +37,9 @@ void FinalScene::Begin() {
 }
 
 void FinalScene::Update(float dt) {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   view = camera_.GetViewMatrix();
   projection =
       glm::perspective(glm::radians(camera_.zoom_),
@@ -65,6 +78,9 @@ void FinalScene::End() {
 }
 
 void FinalScene::BeginSkyBox() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   background_pipe_.LoadShader("data/shaders/final/skybox.vert",
                               "data/shaders/final/skybox.frag");
   background_pipe_.LoadProgram();
@@ -146,6 +162,9 @@ void FinalScene::BeginSkyBox() {
 }
 
 void FinalScene::UpdateSkyBox() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   glDepthFunc(GL_LEQUAL);  // set depth function to less than AND equal for
                            // skybox depth trick.
   glEnable(GL_CULL_FACE);
@@ -163,6 +182,9 @@ void FinalScene::UpdateSkyBox() {
 void FinalScene::DeleteSkyBox() { cubemap_pipe_.Delete(); }
 
 void FinalScene::CreateIrradianceMap() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   // pbr: create an irradiance cubemap, and re-scale capture FBO to irradiance
   // scale.
   // --------------------------------------------------------------------------------
@@ -215,6 +237,9 @@ void FinalScene::CreateIrradianceMap() {
 }
 
 void FinalScene::CreatePrefilterMap() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   // pbr: create a pre-filter cubemap, and re-scale capture FBO to
   // pre-filter scale.
   // --------------------------------------------------------------------------------
@@ -279,6 +304,9 @@ void FinalScene::CreatePrefilterMap() {
 }
 
 void FinalScene::CreateBRDF() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   // pbr: generate a 2D LUT from the BRDF equations used.
   // ----------------------------------------------------
 
@@ -318,12 +346,18 @@ void FinalScene::CreateBRDF() {
 }
 
 void FinalScene::BeginLamp() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   light_cube_.LoadShader("data/shaders/final/lamp.vert",
                          "data/shaders/final/lamp.frag");
   light_cube_.LoadProgram();
 }
 
 void FinalScene::UpdateLamp() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   light_cube_.Bind();
   light_cube_.SetMat4("projection", projection);
   light_cube_.SetMat4("view", view);
@@ -337,19 +371,10 @@ void FinalScene::UpdateLamp() {
 
 void FinalScene::DeleteLamp() { light_cube_.Delete(); }
 
-void FinalScene::BeginGround() {
-  ground_mat_.albedo =
-      tm_.LoadTexture("data/textures/pbr/stonework/albedo.png");
-  ground_mat_.normal =
-      tm_.LoadTexture("data/textures/pbr/stonework/normal.png");
-  ground_mat_.ao = tm_.LoadTexture("data/textures/pbr/stonework/ao.png");
-  ground_mat_.metallic =
-      tm_.LoadTexture("data/textures/pbr/stonework/metallic.png");
-  ground_mat_.roughness =
-      tm_.LoadTexture("data/textures/pbr/stonework/roughness.png");
-}
-
 void FinalScene::UpdateGround(Pipeline& pipeline) {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   ground_mat_.Set();
 
   model = glm::mat4(1.0f);
@@ -365,6 +390,9 @@ void FinalScene::UpdateGround(Pipeline& pipeline) {
 void FinalScene::DeleteGround() { ground_mat_.Clear(); }
 
 void FinalScene::BeginGBuffer() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   geom_pipe_.LoadShader("data/shaders/Final/g_buffer.vert",
                         "data/shaders/Final/g_buffer.frag");
 
@@ -433,6 +461,9 @@ void FinalScene::BeginGBuffer() {
 }
 
 void FinalScene::UpdateGBuffer() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   geom_pipe_.Bind();
   geom_pipe_.SetMat4("view", view);
   geom_pipe_.SetMat4("projection", projection);
@@ -456,6 +487,9 @@ void FinalScene::DeleteGBuffer() {
 }
 
 void FinalScene::BeginSSAO() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   // generate sample kernel
   // ----------------------
   std::uniform_real_distribution<GLfloat> random_floats(0.0, 1.0);
@@ -550,6 +584,9 @@ void FinalScene::BeginSSAO() {
 }
 
 void FinalScene::UpdateSSAO() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   glBindFramebuffer(GL_FRAMEBUFFER, ssao_fbo_);
   glClearColor(0, 0, 0, 1);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -599,6 +636,9 @@ void FinalScene::DeleteSSAO() {
 }
 
 void FinalScene::BeginShadowMap() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
   glEnable(GL_CULL_FACE);
@@ -674,6 +714,9 @@ void FinalScene::DeleteShadowMap() {
 }
 
 void FinalScene::BeginPBR() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   pbr_pipe_.LoadShader("data/shaders/Final/screen_tex.vert",
                        "data/shaders/Final/pbr.frag");
 
@@ -700,6 +743,9 @@ void FinalScene::BeginPBR() {
 }
 
 void FinalScene::UpdatePBR() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   glBindFramebuffer(GL_FRAMEBUFFER, hdr_fbo_);
   glClearColor(0, 0, 0, 1);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -738,61 +784,135 @@ void FinalScene::DeletePBR() {
   pbr_pipe_.Delete();
 }
 
-void FinalScene::BeginModels() {
+void FinalScene::LoadRessources() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   lamp_model_.Load("data/models/final/lamp/msh_lampadaire_01.obj");
-
-  lamp_model_.mat.albedo =
-      tm_.LoadTexture("data/models/final/lamp/lampBaseColor.png", true, true);
-  lamp_model_.mat.normal =
-      tm_.LoadTexture("data/models/final/lamp/lampNormal.png");
-  lamp_model_.mat.ao = tm_.LoadTexture("data/models/final/lamp/lampAO.png");
-  lamp_model_.mat.metallic =
-      tm_.LoadTexture("data/models/final/lamp/lampMetallic.png");
-  lamp_model_.mat.roughness =
-      tm_.LoadTexture("data/models/final/lamp/lampRoughness.png");
-
   backpack_model_.Load("data/models/final/backpack/backpack.obj");
-
-  backpack_model_.mat.albedo =
-      tm_.LoadTexture("data/models/final/backpack/diffuse.jpg", false, true);
-  backpack_model_.mat.normal =
-      tm_.LoadTexture("data/models/final/backpack/normal.png", false);
-  backpack_model_.mat.ao =
-      tm_.LoadTexture("data/models/final/backpack/ao.jpg", false);
-  backpack_model_.mat.metallic =
-      tm_.LoadTexture("data/models/final/backpack/specular.jpg", false);
-  backpack_model_.mat.roughness =
-      tm_.LoadTexture("data/models/final/backpack/roughness.jpg", false);
-
   man_model_.Load("data/models/final/man/man1.obj");
 
-  man_model_.mat.albedo =
-      tm_.LoadTexture("data/models/final/man/albedo.jpg", true, true);
-  man_model_.mat.normal = tm_.LoadTexture("data/models/final/man/normal.png");
-  man_model_.mat.ao = tm_.LoadTexture("data/models/final/man/ao.png");
-  man_model_.mat.metallic =
-      tm_.LoadTexture("data/models/final/man/metallic.png");
-  man_model_.mat.roughness =
-      tm_.LoadTexture("data/models/final/man/roughness.jpg");
+  std::array<std::shared_ptr<FileBuffer>, 5> fbArray{};
+  std::array<std::shared_ptr<TextureGpu>, 5> textures{};
+  std::array<GLuint*, 5> tex_id{
+      &lamp_model_.mat.albedo, &lamp_model_.mat.normal, &lamp_model_.mat.ao,
+      &lamp_model_.mat.metallic, &lamp_model_.mat.roughness};
 
-  steel_.albedo =
-      tm_.LoadTexture("data/textures/pbr/steel/albedo.png", true, true);
-  steel_.normal = tm_.LoadTexture("data/textures/pbr/steel/normal.png");
-  steel_.metallic = tm_.LoadTexture("data/textures/pbr/steel/metallic.png");
-  steel_.ao = tm_.LoadTexture("data/textures/pbr/steel/ao.png");
-  steel_.roughness = tm_.LoadTexture("data/textures/pbr/steel/roughness.png");
+  std::array<TextureParameters, 5> tex_params{
+      TextureParameters("data/models/final/lamp/lampBaseColor.png", GL_REPEAT,
+                        GL_LINEAR, true, true),
+      TextureParameters("data/models/final/lamp/lampNormal.png", GL_REPEAT,
+                        GL_LINEAR, false, true),
+      TextureParameters("data/models/final/lamp/lampAO.png", GL_REPEAT,
+                        GL_LINEAR, false, true),
+      TextureParameters("data/models/final/lamp/lampMetallic.png", GL_REPEAT,
+                        GL_LINEAR, false, true),
+      TextureParameters("data/models/final/lamp/lampRoughness.png", GL_REPEAT,
+                        GL_LINEAR, false, true)};
 
-  titanium_.albedo =
-      tm_.LoadTexture("data/textures/pbr/titanium/albedo.png", true, true);
-  titanium_.normal = tm_.LoadTexture("data/textures/pbr/titanium/normal.png");
-  titanium_.metallic =
-      tm_.LoadTexture("data/textures/pbr/titanium/metallic.png");
-  titanium_.ao = tm_.LoadTexture("data/textures/pbr/titanium/ao.png");
-  titanium_.roughness =
-      tm_.LoadTexture("data/textures/pbr/titanium/roughness.png");
+  std::vector<ImageFileReadingJob> read_jobs{};
+  std::vector<ImageFileDecompressingJob> decom_jobs{};
+  std::vector<LoadTextureToGpuJob> gpu_jobs{};
+
+  JobSystem job_system;
+
+  for (int i = 0; i < 2; ++i) {
+    fbArray[i] = std::make_shared<FileBuffer>();
+    textures[i] = std::make_shared<TextureGpu>();
+
+    const auto& tex_param = tex_params[i];
+    read_jobs.emplace_back(tex_param.image_file_path, fbArray[i]);
+    decom_jobs.emplace_back(fbArray[i], textures[i]);
+    decom_jobs[i].AddDependency(&read_jobs[i]);
+
+    gpu_jobs.emplace_back(textures[i], tex_id[i], tex_param);
+    gpu_jobs[i].AddDependency(&decom_jobs[i]);
+  }
+  for (auto& read : read_jobs) {
+    job_system.AddJob(&read);
+  }
+
+  for (auto& decom : decom_jobs) {
+    job_system.AddJob(&decom);
+  }
+
+  for (auto& gpu : gpu_jobs) {
+    job_system.AddJob(&gpu);
+  }
+
+  job_system.LaunchWorkers(2);
+
+  job_system.JoinWorkers();
+
+  //    lamp_model_.mat.albedo = tm_.LoadTextureAsync(
+  //    //"data/models/final/lamp/lampBaseColor.png", true, true);
+  // lamp_model_.mat.normal =
+  //    tm_.LoadTextureAsync("data/models/final/lamp/lampNormal.png");
+  // lamp_model_.mat.ao =
+  //    tm_.LoadTextureAsync("data/models/final/lamp/lampAO.png");
+  // lamp_model_.mat.metallic =
+  //    tm_.LoadTextureAsync("data/models/final/lamp/lampMetallic.png");
+  // lamp_model_.mat.roughness =
+  //    tm_.LoadTextureAsync("data/models/final/lamp/lampRoughness.png");
+
+  // backpack_model_.mat.albedo = tm_.LoadTextureAsync(
+  //     "data/models/final/backpack/diffuse.jpg", false, true);
+  // backpack_model_.mat.normal =
+  //     tm_.LoadTextureAsync("data/models/final/backpack/normal.png", false);
+  // backpack_model_.mat.ao =
+  //     tm_.LoadTextureAsync("data/models/final/backpack/ao.jpg", false);
+  // backpack_model_.mat.metallic =
+  //     tm_.LoadTextureAsync("data/models/final/backpack/specular.jpg", false);
+  // backpack_model_.mat.roughness =
+  //     tm_.LoadTextureAsync("data/models/final/backpack/roughness.jpg",
+  //     false);
+
+  // man_model_.mat.albedo =
+  //     tm_.LoadTextureAsync("data/models/final/man/albedo.jpg", true, true);
+  // man_model_.mat.normal =
+  //     tm_.LoadTextureAsync("data/models/final/man/normal.png");
+  // man_model_.mat.ao = tm_.LoadTextureAsync("data/models/final/man/ao.png");
+  // man_model_.mat.metallic =
+  //     tm_.LoadTextureAsync("data/models/final/man/metallic.png");
+  // man_model_.mat.roughness =
+  //     tm_.LoadTextureAsync("data/models/final/man/roughness.jpg");
+
+  // steel_.albedo =
+  //     tm_.LoadTextureAsync("data/textures/pbr/steel/albedo.png", true, true);
+  // steel_.normal = tm_.LoadTextureAsync("data/textures/pbr/steel/normal.png");
+  // steel_.metallic =
+  //     tm_.LoadTextureAsync("data/textures/pbr/steel/metallic.png");
+  // steel_.ao = tm_.LoadTextureAsync("data/textures/pbr/steel/ao.png");
+  // steel_.roughness =
+  //     tm_.LoadTextureAsync("data/textures/pbr/steel/roughness.png");
+
+  // titanium_.albedo =
+  //     tm_.LoadTextureAsync("data/textures/pbr/titanium/albedo.png", true,
+  //     true);
+  // titanium_.normal =
+  //     tm_.LoadTextureAsync("data/textures/pbr/titanium/normal.png");
+  // titanium_.metallic =
+  //     tm_.LoadTextureAsync("data/textures/pbr/titanium/metallic.png");
+  // titanium_.ao = tm_.LoadTextureAsync("data/textures/pbr/titanium/ao.png");
+  // titanium_.roughness =
+  //     tm_.LoadTextureAsync("data/textures/pbr/titanium/roughness.png");
+
+  // ground_mat_.albedo =
+  //     tm_.LoadTextureAsync("data/textures/pbr/stonework/albedo.png");
+  // ground_mat_.normal =
+  //     tm_.LoadTextureAsync("data/textures/pbr/stonework/normal.png");
+  // ground_mat_.ao =
+  // tm_.LoadTextureAsync("data/textures/pbr/stonework/ao.png");
+  // ground_mat_.metallic =
+  //     tm_.LoadTextureAsync("data/textures/pbr/stonework/metallic.png");
+  // ground_mat_.roughness =
+  //     tm_.LoadTextureAsync("data/textures/pbr/stonework/roughness.png");
 }
 
 void FinalScene::UpdateModels(Pipeline& pipeline) {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   lamp_model_.mat.Set();
 
   model = glm::mat4(1.0f);
@@ -869,6 +989,9 @@ void FinalScene::DeleteModels() {
 }
 
 void FinalScene::UpdateSpheres(Pipeline& pipeline) {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   steel_.Set();
 
   model = glm::mat4(1.0f);
@@ -894,6 +1017,9 @@ void FinalScene::UpdateSpheres(Pipeline& pipeline) {
 }
 
 void FinalScene::BeginBloom() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   hdr_pipe_.LoadShader("data/shaders/final/screen_tex.vert",
                        "data/shaders/final/hdr.frag");
   hdr_pipe_.LoadProgram();
@@ -1022,6 +1148,9 @@ void FinalScene::BeginBloom() {
 }
 
 void FinalScene::UpdateBloom() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   glBindFramebuffer(GL_FRAMEBUFFER, bloom_fbo_);
   glDisable(GL_DEPTH_TEST);
   glDisable(GL_CULL_FACE);

@@ -9,6 +9,11 @@
 #include <chrono>
 #include <glm/vec2.hpp>
 
+#ifdef TRACY_ENABLE
+#include "Tracy.hpp"
+#include "TracyC.h"
+#endif 
+
 void Engine::Run() {
   Begin();
   bool isOpen = true;
@@ -132,6 +137,9 @@ void Engine::Run() {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     SDL_GL_SwapWindow(window_);
+#ifdef TRACY_ENABLE
+    FrameMark;
+#endif 
   }
   End();
 }
