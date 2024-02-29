@@ -16,4 +16,5 @@ class Scene {
   virtual void Begin() = 0;
   virtual void Update(float dt) = 0;
   virtual void End() = 0;
+  virtual void DrawImgui() = 0;
 };

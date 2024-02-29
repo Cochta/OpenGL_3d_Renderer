@@ -52,16 +52,7 @@ void SceneManager::DrawImGui() noexcept {
 
   ImGui::Spacing();
 
-  ImGui::TextWrapped("CONTROLS:");
-  ImGui::TextWrapped("W - move forward");
-  ImGui::TextWrapped("S - move backward");
-  ImGui::TextWrapped("A - move left");
-  ImGui::TextWrapped("D - move right");
-  ImGui::Spacing();
-  ImGui::TextWrapped("L CTRL - move down");
-  ImGui::TextWrapped("SPACE - move up");
-  ImGui::Spacing();
-  ImGui::TextWrapped("LEFT MOUSE CLICK AND MOVE MOUSE - move camera");
+    scenes_[sceneIdx_]->DrawImgui();
 
   ImGui::Spacing();
 

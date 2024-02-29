@@ -6,13 +6,13 @@
 
 #include "file_utility.h"
 
+
 #ifdef TRACY_ENABLE
 #include <TracyC.h>
 
 #include <Tracy.hpp>
 #endif
 
-TextureManager::TextureManager() {}
 
 GLuint TextureManager::LoadTexture(std::string_view path, bool flip, bool pbr) {
 #ifdef TRACY_ENABLE
@@ -84,22 +84,6 @@ GLuint TextureManager::LoadTexture(std::string_view path, bool flip, bool pbr) {
   return texture;
 }
 
-// GLuint TextureManager::LoadTextureAsync(std::string_view path, bool flip,
-//                                         bool pbr) {
-// #ifdef TRACY_ENABLE
-//   ZoneScoped;
-// #endif
-//
-//   // Set STBI flip_ option
-//   stbi_set_flip_vertically_on_load(flip);
-//
-//   auto fileBuffer = LoadFile(path);
-//
-//   auto fileData = Decompress(fileBuffer);
-//
-//   return UpGPU(fileData, flip, pbr);
-// }
-
 GLuint TextureManager::LoadCubeMap(std::string path,
                                    std::vector<std::string> faces, bool flip) {
   stbi_set_flip_vertically_on_load(flip);
@@ -156,108 +140,20 @@ GLuint TextureManager::LoadHDR(std::string_view path, bool flip) {
   }
   return hdrTexture;
 }
-//
-// FileBuffer TextureManager::LoadFile(std::string_view path) {
-// #ifdef TRACY_ENABLE
-//  ZoneScoped;
-// #endif
-//  // Read the image file into memory
-//  FILE* file = fopen(path.data(), "rb");
-//  if (!file) {
-//    std::cerr << "Error: Failed to open file." << std::endl;
-//  }
-//
-//  fseek(file, 0, SEEK_END);
-//  long fileSize = ftell(file);
-//  fseek(file, 0, SEEK_SET);
-//
-//  std::vector<unsigned char> fileData(fileSize);
-//  fread(fileData.data(), 1, fileSize, file);
-//  fclose(file);
-//  return {fileData, fileSize};
-//}
-//
-// FileData TextureManager::Decompress(FileBuffer fileBuffer) {
-// #ifdef TRACY_ENABLE
-//  ZoneScoped;
-// #endif
-//  // Decode the image
-//  FileData fd;
-//  fd.data =
-//      stbi_load_from_memory(fileBuffer.fileData.data(), fileBuffer.fileSize,
-//                            &fd.width, &fd.height, &fd.nr_channels, 0);
-//  return fd;
-//}
-//
-// GLuint TextureManager::UpGPU(FileData fileData, bool flip, bool pbr) {
-//  if (!fileData.data) {
-//    std::cerr << "Error: Failed to decode image." << std::endl;
-//    return 1;
-//  }
-//
-//  // Generate texture
-//  GLuint texture;
-//  glGenTextures(1, &texture);
-//  glBindTexture(GL_TEXTURE_2D, texture);
-//
-//  // Set texture parameters
-//  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-//  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-//  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-//                  GL_LINEAR_MIPMAP_LINEAR);
-//  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//
-//  // Determine internal format and format based on number of channels
-//  GLint internal_format, format;
-//
-//  switch (fileData.nr_channels) {
-//    case 1:
-//      internal_format = GL_RED;
-//      format = GL_RED;
-//      break;
-//    case 2:
-//      internal_format = GL_RG;
-//      format = GL_RG;
-//      break;
-//    case 3:
-//      internal_format = pbr ? GL_SRGB : GL_RGB;
-//      format = GL_RGB;
-//      break;
-//    case 4:
-//      internal_format = pbr ? GL_SRGB_ALPHA : GL_RGBA;
-//      format = GL_RGBA;
-//      break;
-//    default:
-//      std::cerr << "Unsupported number of channels: " << fileData.nr_channels
-//                << "\n";
-//      stbi_image_free(fileData.data);
-//      return 0;
-//  }
-//
-//  // Set texture data
-//  glTexImage2D(GL_TEXTURE_2D, 0, internal_format, fileData.width,
-//               fileData.height, 0, format, GL_UNSIGNED_BYTE, fileData.data);
-//  glGenerateMipmap(GL_TEXTURE_2D);
-//
-//  // Free image data
-//  stbi_image_free(fileData.data);
-//
-//  return texture;
-//}
 
-ImageFileReadingJob::ImageFileReadingJob(
-    std::string path, std::shared_ptr<FileBuffer> file_buffer) noexcept
-    : Job(JobType::kFileReading), file_path(std::move(path)), file_buffer(file_buffer) {}
+ReadJob::ReadJob(
+    std::string path, FileBuffer* file_buffer) noexcept
+    : Job(JobType::kImageFileLoading), file_path(std::move(path)), file_buffer(file_buffer) {}
 
-ImageFileReadingJob::ImageFileReadingJob(ImageFileReadingJob&& other) noexcept
+ReadJob::ReadJob(ReadJob&& other) noexcept
     : Job(std::move(other)) {
   file_buffer = std::move(other.file_buffer);
   file_path = std::move(other.file_path);
 
   other.file_buffer = nullptr;
 }
-ImageFileReadingJob& ImageFileReadingJob::operator=(
-    ImageFileReadingJob&& other) noexcept {
+ReadJob& ReadJob::operator=(
+    ReadJob&& other) noexcept {
   Job::operator=(std::move(other));
   file_buffer = std::move(other.file_buffer);
   file_path = std::move(other.file_path);
@@ -267,27 +163,27 @@ ImageFileReadingJob& ImageFileReadingJob::operator=(
   return *this;
 }
 
-ImageFileReadingJob::~ImageFileReadingJob() noexcept { file_buffer = nullptr; }
+ReadJob::~ReadJob() noexcept { file_buffer = nullptr; }
 
-void ImageFileReadingJob::Work() noexcept {
+void ReadJob::Work() noexcept {
 #ifdef TRACY_ENABLE
   ZoneScoped;
   ZoneText(file_path.data(), file_path.size());
 #endif  // TRACY_ENABLE
 
-  LoadFileInBuffer(file_path.data(), file_buffer.get());
+  LoadFileInBuffer(file_path.data(), file_buffer);
 }
 
-ImageFileDecompressingJob::ImageFileDecompressingJob(
-    std::shared_ptr<FileBuffer> file_buffer,
-    std::shared_ptr<TextureGpu> texture, bool flip) noexcept
-    : Job(JobType::kFileDecompressing),
+DecompressJob::DecompressJob(
+    FileBuffer* file_buffer,
+    TextureBuffer* texture, bool flip) noexcept
+    : Job(JobType::kImageFileDecompressing),
       file_buffer_(file_buffer),
       texture_(texture),
       flip_(flip) {}
 
-ImageFileDecompressingJob::ImageFileDecompressingJob(
-    ImageFileDecompressingJob&& other) noexcept
+DecompressJob::DecompressJob(
+    DecompressJob&& other) noexcept
     : Job(std::move(other)) {
   file_buffer_ = std::move(other.file_buffer_);
   texture_ = std::move(other.texture_);
@@ -296,8 +192,8 @@ ImageFileDecompressingJob::ImageFileDecompressingJob(
   other.texture_ = nullptr;
 }
 
-ImageFileDecompressingJob& ImageFileDecompressingJob::operator=(
-    ImageFileDecompressingJob&& other) noexcept {
+DecompressJob& DecompressJob::operator=(
+    DecompressJob&& other) noexcept {
   Job::operator=(std::move(other));
   file_buffer_ = std::move(other.file_buffer_);
   texture_ = std::move(other.texture_);
@@ -308,19 +204,19 @@ ImageFileDecompressingJob& ImageFileDecompressingJob::operator=(
   return *this;
 }
 
-ImageFileDecompressingJob::~ImageFileDecompressingJob() noexcept {
+DecompressJob::~DecompressJob() noexcept {
   file_buffer_ = nullptr;
   texture_ = nullptr;
 }
 
-void ImageFileDecompressingJob::Work() noexcept {
+void DecompressJob::Work() noexcept {
 #ifdef TRACY_ENABLE
   ZoneScoped;
 #endif  // TRACY_ENABLE
   stbi_set_flip_vertically_on_load(flip_);
 
   texture_->data = stbi_load_from_memory(
-      file_buffer_.get()->data, file_buffer_.get()->size, &texture_->width,
+      file_buffer_->data, file_buffer_->size, &texture_->width,
       &texture_->height, &texture_->channels, 0);
 }
 
@@ -334,23 +230,23 @@ TextureParameters::TextureParameters(std::string path, GLint wrap_param,
       flipped_y(flip_y),
       hdr(hdr){};
 
-LoadTextureToGpuJob::LoadTextureToGpuJob(
-    std::shared_ptr<TextureGpu> image_buffer, GLuint* texture_id,
+UploadGpuJob::UploadGpuJob(
+    TextureBuffer* image_buffer, GLuint* texture_id,
     const TextureParameters& tex_param) noexcept
-    : Job(JobType::kDownloadingDataToGpu),
+    : Job(JobType::kMainThread),
       image_buffer_(image_buffer),
       texture_id_(texture_id),
       texture_param_(tex_param) {}
 
-LoadTextureToGpuJob::LoadTextureToGpuJob(LoadTextureToGpuJob&& other) noexcept
+UploadGpuJob::UploadGpuJob(UploadGpuJob&& other) noexcept
     : Job(std::move(other)) {
   image_buffer_ = std::move(other.image_buffer_);
   texture_id_ = std::move(other.texture_id_);
   texture_param_ = other.texture_param_;
 }
 
-LoadTextureToGpuJob& LoadTextureToGpuJob::operator=(
-    LoadTextureToGpuJob&& other) noexcept {
+UploadGpuJob& UploadGpuJob::operator=(
+    UploadGpuJob&& other) noexcept {
   Job::operator=(std::move(other));
   image_buffer_ = std::move(other.image_buffer_);
   texture_id_ = std::move(other.texture_id_);
@@ -359,12 +255,12 @@ LoadTextureToGpuJob& LoadTextureToGpuJob::operator=(
   return *this;
 }
 
-LoadTextureToGpuJob::~LoadTextureToGpuJob() noexcept {
+UploadGpuJob::~UploadGpuJob() noexcept {
   image_buffer_ = nullptr;
   texture_id_ = nullptr;
 }
 
-void LoadTextureToGpu(std::shared_ptr<TextureGpu> image_buffer, GLuint* id,
+void LoadTextureToGpu(TextureBuffer* image_buffer, GLuint* id,
                       const TextureParameters& tex_param) noexcept {
   glGenTextures(1, id);
   glBindTexture(GL_TEXTURE_2D, *id);
@@ -412,7 +308,7 @@ void LoadTextureToGpu(std::shared_ptr<TextureGpu> image_buffer, GLuint* id,
   stbi_image_free(image_buffer->data);
 }
 
-void LoadTextureToGpuJob::Work() noexcept {
+void UploadGpuJob::Work() noexcept {
 #ifdef TRACY_ENABLE
   ZoneScoped;
 #endif  // TRACY_ENABLE

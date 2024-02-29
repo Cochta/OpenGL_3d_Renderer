@@ -14,32 +14,57 @@ void FinalScene::Begin() {
 #endif
   glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
-  cube_.SetCube();
-  cube_ground_.SetCube(30, {1, 0.1});
-  quad_screen_.SetQuad(2);
-  sphere_.SetSphere();
-
-  BeginBloom();
-  BeginSkyBox();
-  CreateIrradianceMap();
-  CreatePrefilterMap();
-  CreateBRDF();
-  BeginLamp();
   LoadRessources();
-
-  BeginGBuffer();
-  BeginSSAO();
-  BeginPBR();
-  BeginShadowMap();
-
-  glViewport(0, 0, Metrics::width_, Metrics::height_);
-  camera_ = (glm::vec3(0.0f, 2.0f, 0.0f));
 }
 
 void FinalScene::Update(float dt) {
 #ifdef TRACY_ENABLE
   ZoneScoped;
 #endif
+  is_frist_frame_ = false;
+  while (!are_all_data_loaded_) {
+    Job* job = nullptr;
+
+    if (!main_thread_jobs_.empty()) {
+      job = main_thread_jobs_.front();
+      if (job->AreDependencyDone()) {
+        job->Execute();
+        main_thread_jobs_.pop();
+      } else {
+        return;
+      }
+    } else {
+      are_all_data_loaded_ = true;
+      break;
+    }
+  }
+
+  if (!is_initialized_) {
+    job_system_.JoinWorkers();
+    cube_.SetCube();
+    cube_ground_.SetCube(30, {1, 0.1});
+    quad_screen_.SetQuad(2);
+    sphere_.SetSphere();
+
+    BeginBloom();
+    BeginSkyBox();
+    CreateIrradianceMap();
+    CreatePrefilterMap();
+    CreateBRDF();
+    BeginLamp();
+
+    BeginGBuffer();
+    BeginSSAO();
+    BeginPBR();
+    BeginShadowMap();
+
+    glViewport(0, 0, Metrics::width_, Metrics::height_);
+    camera_ = (glm::vec3(0.0f, 2.0f, 0.0f));
+
+    is_initialized_ = true;
+    return;
+  }
+
   view = camera_.GetViewMatrix();
   projection =
       glm::perspective(glm::radians(camera_.zoom_),
@@ -51,6 +76,7 @@ void FinalScene::Update(float dt) {
 
   glBindFramebuffer(GL_FRAMEBUFFER, hdr_fbo_);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
   UpdateGBuffer();
   UpdateSSAO();
   UpdatePBR();
@@ -792,22 +818,12 @@ void FinalScene::LoadRessources() {
   backpack_model_.Load("data/models/final/backpack/backpack.obj");
   man_model_.Load("data/models/final/man/man1.obj");
 
-  constexpr int nb_data = 30;
-
-  std::array<std::shared_ptr<FileBuffer>, nb_data> fbArray{};
-  std::array<std::shared_ptr<TextureGpu>, nb_data> textures{};
   std::array<GLuint*, nb_data> tex_id{
       &lamp_model_.mat.albedo,
       &lamp_model_.mat.normal,
       &lamp_model_.mat.ao,
       &lamp_model_.mat.metallic,
       &lamp_model_.mat.roughness,
-
-      &backpack_model_.mat.albedo,
-      &backpack_model_.mat.normal,
-      &backpack_model_.mat.ao,
-      &backpack_model_.mat.metallic,
-      &backpack_model_.mat.roughness,
 
       &man_model_.mat.albedo,
       &man_model_.mat.normal,
@@ -832,6 +848,12 @@ void FinalScene::LoadRessources() {
       &ground_mat_.ao,
       &ground_mat_.metallic,
       &ground_mat_.roughness,
+
+      &backpack_model_.mat.albedo,
+      &backpack_model_.mat.normal,
+      &backpack_model_.mat.ao,
+      &backpack_model_.mat.metallic,
+      &backpack_model_.mat.roughness,
   };
 
   std::array<TextureParameters, nb_data> tex_params{
@@ -845,17 +867,6 @@ void FinalScene::LoadRessources() {
                         GL_LINEAR, false, true),
       TextureParameters("data/models/final/lamp/lampRoughness.png", GL_REPEAT,
                         GL_LINEAR, false, true),
-
-      TextureParameters("data/models/final/backpack/diffuse.jpg", GL_REPEAT,
-                        GL_LINEAR, true, false),
-      TextureParameters("data/models/final/backpack/normal.png", GL_REPEAT,
-                        GL_LINEAR, false, false),
-      TextureParameters("data/models/final/backpack/ao.jpg", GL_REPEAT,
-                        GL_LINEAR, false, false),
-      TextureParameters("data/models/final/backpack/specular.jpg", GL_REPEAT,
-                        GL_LINEAR, false, false),
-      TextureParameters("data/models/final/backpack/roughness.jpg", GL_REPEAT,
-                        GL_LINEAR, false, false),
 
       TextureParameters("data/models/final/man/albedo.jpg", GL_REPEAT,
                         GL_LINEAR, true, true),
@@ -872,108 +883,70 @@ void FinalScene::LoadRessources() {
                         GL_LINEAR, true, true),
       TextureParameters("data/textures/pbr/steel/normal.png", GL_REPEAT,
                         GL_LINEAR, false, true),
-      TextureParameters("data/textures/pbr/steel/ao.png", GL_REPEAT,
-                        GL_LINEAR,
+      TextureParameters("data/textures/pbr/steel/ao.png", GL_REPEAT, GL_LINEAR,
                         false, true),
       TextureParameters("data/textures/pbr/steel/metallic.png", GL_REPEAT,
                         GL_LINEAR, false, true),
       TextureParameters("data/textures/pbr/steel/roughness.png", GL_REPEAT,
                         GL_LINEAR, false, true),
 
-          TextureParameters("data/textures/pbr/titanium/albedo.png", GL_REPEAT,
+      TextureParameters("data/textures/pbr/titanium/albedo.png", GL_REPEAT,
                         GL_LINEAR, true, true),
       TextureParameters("data/textures/pbr/titanium/normal.png", GL_REPEAT,
                         GL_LINEAR, false, true),
-      TextureParameters("data/textures/pbr/titanium/ao.png", GL_REPEAT, GL_LINEAR,
-                        false, true),
+      TextureParameters("data/textures/pbr/titanium/ao.png", GL_REPEAT,
+                        GL_LINEAR, false, true),
       TextureParameters("data/textures/pbr/titanium/metallic.png", GL_REPEAT,
                         GL_LINEAR, false, true),
       TextureParameters("data/textures/pbr/titanium/roughness.png", GL_REPEAT,
                         GL_LINEAR, false, true),
 
-          TextureParameters("data/textures/pbr/stonework/albedo.png", GL_REPEAT,
-                        GL_LINEAR, true, true),
+      TextureParameters("data/textures/pbr/stonework/albedo.png", GL_REPEAT,
+                        GL_LINEAR, false, true),
       TextureParameters("data/textures/pbr/stonework/normal.png", GL_REPEAT,
                         GL_LINEAR, false, true),
-      TextureParameters("data/textures/pbr/stonework/ao.png", GL_REPEAT, GL_LINEAR,
-                        false, true),
+      TextureParameters("data/textures/pbr/stonework/ao.png", GL_REPEAT,
+                        GL_LINEAR, false, true),
       TextureParameters("data/textures/pbr/stonework/metallic.png", GL_REPEAT,
                         GL_LINEAR, false, true),
       TextureParameters("data/textures/pbr/stonework/roughness.png", GL_REPEAT,
                         GL_LINEAR, false, true),
+
+      TextureParameters("data/models/final/backpack/diffuse.jpg", GL_REPEAT,
+                        GL_LINEAR, true, false),
+      TextureParameters("data/models/final/backpack/normal.png", GL_REPEAT,
+                        GL_LINEAR, false, false),
+      TextureParameters("data/models/final/backpack/ao.jpg", GL_REPEAT,
+                        GL_LINEAR, false, false),
+      TextureParameters("data/models/final/backpack/specular.jpg", GL_REPEAT,
+                        GL_LINEAR, false, false),
+      TextureParameters("data/models/final/backpack/roughness.jpg", GL_REPEAT,
+                        GL_LINEAR, false, false),
   };
 
-  std::vector<ImageFileReadingJob> read_jobs{};
-  std::vector<ImageFileDecompressingJob> decom_jobs{};
-  std::vector<LoadTextureToGpuJob> gpu_jobs{};
-
-  read_jobs.reserve(nb_data);
-  decom_jobs.reserve(nb_data);
-  gpu_jobs.reserve(nb_data);
-
-  JobSystem job_system;
+  read_jobs_.reserve(nb_data);
+  decom_jobs_.reserve(nb_data);
+  gpu_jobs_.reserve(nb_data);
 
   for (int i = 0; i < nb_data; ++i) {
-    fbArray[i] = std::make_shared<FileBuffer>();
-    textures[i] = std::make_shared<TextureGpu>();
-
     const auto& tex_param = tex_params[i];
 
-    read_jobs.emplace_back(tex_param.image_file_path, fbArray[i]);
+    read_jobs_.emplace_back(tex_param.image_file_path, &fbArray[i]);
 
-    decom_jobs.emplace_back(fbArray[i], textures[i], tex_param.flipped_y);
-    decom_jobs[i].AddDependency(&read_jobs[i]);
+    decom_jobs_.emplace_back(&fbArray[i], &textures[i], tex_param.flipped_y);
+    decom_jobs_[i].AddDependency(&read_jobs_[i]);
 
-    gpu_jobs.emplace_back(textures[i], tex_id[i], tex_param);
-    gpu_jobs[i].AddDependency(&decom_jobs[i]);
+    gpu_jobs_.emplace_back(&textures[i], tex_id[i], tex_param);
+    gpu_jobs_[i].AddDependency(&decom_jobs_[i]);
+
+    job_system_.AddJob(&read_jobs_[i]);
+    job_system_.AddJob(&decom_jobs_[i]);
+    main_thread_jobs_.push(&gpu_jobs_[i]);
+
+    // do not push back jobs otherwise it will explode
   }
 
-  for (auto& read : read_jobs) {
-    job_system.AddJob(&read);
-  }
-
-  for (auto& decom : decom_jobs) {
-    job_system.AddJob(&decom);
-  }
-
-  for (auto& gpu : gpu_jobs) {
-    job_system.AddJob(&gpu);
-  }
-
-  job_system.LaunchWorkers(2);
-
-  job_system.JoinWorkers();
-
-  // steel_.albedo =
-  //     tm_.LoadTextureAsync("data/textures/pbr/steel/albedo.png", true, true);
-  // steel_.normal = tm_.LoadTextureAsync("data/textures/pbr/steel/normal.png");
-  // steel_.metallic =
-  //     tm_.LoadTextureAsync("data/textures/pbr/steel/metallic.png");
-  // steel_.ao = tm_.LoadTextureAsync("data/textures/pbr/steel/ao.png");
-  // steel_.roughness =
-  //     tm_.LoadTextureAsync("data/textures/pbr/steel/roughness.png");
-
-  // titanium_.albedo =
-  //     tm_.LoadTextureAsync("data/textures/pbr/titanium/albedo.png", true,
-  //     true);
-  // titanium_.normal =
-  //     tm_.LoadTextureAsync("data/textures/pbr/titanium/normal.png");
-  // titanium_.metallic =
-  //     tm_.LoadTextureAsync("data/textures/pbr/titanium/metallic.png");
-  // titanium_.ao = tm_.LoadTextureAsync("data/textures/pbr/titanium/ao.png");
-  // titanium_.roughness =
-  //     tm_.LoadTextureAsync("data/textures/pbr/titanium/roughness.png");
-
-  // ground_mat_.albedo =
-  //     tm_.LoadTextureAsync("data/textures/pbr/stonework/albedo.png");
-  // ground_mat_.normal =
-  //     tm_.LoadTextureAsync("data/textures/pbr/stonework/normal.png");
-  // ground_mat_.ao =
-  // tm_.LoadTextureAsync("data/textures/pbr/stonework/ao.png");
-  // ground_mat_.metallic =
-  //     tm_.LoadTextureAsync("data/textures/pbr/stonework/metallic.png");
-  // ground_mat_.roughness =
-  //     tm_.LoadTextureAsync("data/textures/pbr/stonework/roughness.png");
+  job_system_.LaunchWorkers(2);
 }
 
 void FinalScene::UpdateModels(Pipeline& pipeline) {
@@ -1303,4 +1276,24 @@ void FinalScene::DeleteBloom() {
   hdr_pipe_.Delete();
   up_sample_pipe_.Delete();
   down_sample_pipe_.Delete();
+}
+
+void FinalScene::DrawImgui() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
+  if (is_initialized_) {
+    ImGui::TextWrapped("CONTROLS:");
+    ImGui::TextWrapped("W - move forward");
+    ImGui::TextWrapped("S - move backward");
+    ImGui::TextWrapped("A - move left");
+    ImGui::TextWrapped("D - move right");
+    ImGui::Spacing();
+    ImGui::TextWrapped("L CTRL - move down");
+    ImGui::TextWrapped("SPACE - move up");
+    ImGui::Spacing();
+    ImGui::TextWrapped("LEFT MOUSE CLICK AND MOVE MOUSE - move camera");
+  } else {
+    ImGui::TextWrapped("Loading...");
+  }
 }

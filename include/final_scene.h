@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <memory>
 #include <random>
 #include <vector>
 
@@ -14,6 +15,17 @@ struct BloomMip {
 
 class FinalScene final : public Scene {
  private:
+  bool are_all_data_loaded_ = false;
+  bool is_initialized_ = false;
+
+  JobSystem job_system_{};
+
+  std::vector<ReadJob> read_jobs_{};
+  std::vector<DecompressJob> decom_jobs_{};
+  std::vector<UploadGpuJob> gpu_jobs_{};
+
+  std::queue<Job*> main_thread_jobs_{};
+
   TextureManager tm_;
 
   Mesh cube_;
@@ -52,7 +64,7 @@ class FinalScene final : public Scene {
   Model man_model_;
 
   Material ground_mat_;
-
+  bool is_frist_frame_ = true;
   Material steel_;
   Material titanium_;
 
@@ -100,6 +112,9 @@ class FinalScene final : public Scene {
   GLuint shadow_tex_;
 
   glm::mat4 lightSpaceMatrix;
+  constexpr static int nb_data = 30;
+  std::array<FileBuffer, nb_data> fbArray{};
+  std::array<TextureBuffer, nb_data> textures{};
 
   static constexpr int shadow_tex_res_ = 4096;
 
@@ -150,15 +165,17 @@ class FinalScene final : public Scene {
 
   void LoadRessources();
 
-  void UpdateGround(Pipeline &pipeline);
+  void UpdateGround(Pipeline& pipeline);
   void DeleteGround();
 
-  void UpdateModels(Pipeline &pipeline);
+  void UpdateModels(Pipeline& pipeline);
   void DeleteModels();
 
-  void UpdateSpheres(Pipeline &pipeline);
+  void UpdateSpheres(Pipeline& pipeline);
 
   void BeginBloom();
   void UpdateBloom();
   void DeleteBloom();
+
+  void DrawImgui() override;
 };

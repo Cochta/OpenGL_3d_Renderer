@@ -32,6 +32,7 @@ void Engine::Run() {
     const Uint8* keys = SDL_GetKeyboardState(nullptr);
 
     bool IsKeyboardActive = false;
+
     // Manage SDL event
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
@@ -133,6 +134,7 @@ void Engine::Run() {
     ImGui::NewFrame();
 
     sm_.DrawImGui();
+    
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
